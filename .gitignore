@@ -1,0 +1,88 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.python-version
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.hypothesis/
+coverage.xml
+*.cover
+htmlcov/
+.coverage
+.coverage.*
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Editors / IDE ---
+.idea/
+*.swp
+*.swo
+*~
+.vscode/*.log
+
+# --- Cursor / local tooling ---
+.cursor/
+
+# --- Environment & secrets ---
+.env
+.env.*
+!.env.example
+*.pem
+secrets.json
+
+# --- Geo / SQLite sidecars (GeoPackage etc.) ---
+*.gpkg-shm
+*.gpkg-wal
+*.db-shm
+*.db-wal
+
+# --- Logs & temp ---
+*.log
+tmp/
+temp/
+*.tmp
+*.bak
