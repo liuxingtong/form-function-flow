@@ -1,0 +1,374 @@
+{
+  "type": "FeatureCollection",
+  "name": "metroflow_stations_3km",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 288,
+        "stationID": 2034,
+        "name": "Shanghai Railway Station",
+        "dist_m": 0.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.451257271,
+          31.249149419
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 293,
+        "stationID": 2039,
+        "name": "Hanzhong Road",
+        "dist_m": 657.72
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.454089429,
+          31.24375272
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 174,
+        "stationID": 1331,
+        "name": "Jiangning Road",
+        "dist_m": 1102.24
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.440163596,
+          31.246266848
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 75,
+        "stationID": 127,
+        "name": "Zhongshan North Road",
+        "dist_m": 1329.64
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.454688131,
+          31.260741938
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 186,
+        "stationID": 1333,
+        "name": "Shanghai Natural History Museum",
+        "dist_m": 1355.63
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.457823884,
+          31.238327541
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 34,
+        "stationID": 837,
+        "name": "Zhongxing Road",
+        "dist_m": 1428.64
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.464500701,
+          31.255223204
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 72,
+        "stationID": 124,
+        "name": "Xinzha Road",
+        "dist_m": 1496.78
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.463493379,
+          31.24067856
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 275,
+        "stationID": 2021,
+        "name": "Qufu Road",
+        "dist_m": 1587.84
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.467113891,
+          31.244662253
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 255,
+        "stationID": 2001,
+        "name": "Zhongtan Road",
+        "dist_m": 1633.1
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.436350839,
+          31.256450861
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 274,
+        "stationID": 2020,
+        "name": "Changshou Road",
+        "dist_m": 1862.71
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.433696872,
+          31.241718375
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 126,
+        "stationID": 738,
+        "name": "Changping Road",
+        "dist_m": 1967.2
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.43788726,
+          31.235646924
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 295,
+        "stationID": 2041,
+        "name": "West Nanjing Road",
+        "dist_m": 1994.3
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.455627903,
+          31.231607822
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 284,
+        "stationID": 2030,
+        "name": "Baoshan Road",
+        "dist_m": 2012.23
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.471816719,
+          31.253456818000004
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 192,
+        "stationID": 838,
+        "name": "North Xizang Road",
+        "dist_m": 2180.92
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.464264315,
+          31.265306644
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 289,
+        "stationID": 2035,
+        "name": "People's Square",
+        "dist_m": 2419.57
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.470457083,
+          31.234865971
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 278,
+        "stationID": 2024,
+        "name": "Zhenping Road",
+        "dist_m": 2483.6
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.425155934,
+          31.248182892
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 280,
+        "stationID": 2026,
+        "name": "Tiantong Road",
+        "dist_m": 2534.72
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.47772089,
+          31.246365172
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 76,
+        "stationID": 128,
+        "name": "Yanchang Road",
+        "dist_m": 2686.77
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.450712025,
+          31.273307641
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 191,
+        "stationID": 325,
+        "name": "Dongbaoxing Road",
+        "dist_m": 2723.39
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.475714615,
+          31.26190605
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 21,
+        "stationID": 1058,
+        "name": "North Sichuan Road",
+        "dist_m": 2749.45
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.479642061,
+          31.253898054
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 165,
+        "stationID": 1329,
+        "name": "Wuning Road",
+        "dist_m": 2807.57
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.425915093,
+          31.236185753
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 2,
+        "stationID": 2050,
+        "name": "Jing'an Temple",
+        "dist_m": 2824.45
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.441840398,
+          31.225058466
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station_idx": 273,
+        "stationID": 2019,
+        "name": "East Nanjing Road",
+        "dist_m": 2863.56
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.478953029,
+          31.239024894
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "n_units": 4215,
+  "n_directed_edges": 31138,
+  "edge_kind_directed": {
+    "proximity_bridge": 19702,
+    "parcel_touch": 10948,
+    "knn_bridge": 488
+  },
+  "degree_min": 1,
+  "degree_max": 23,
+  "degree_median": 8.0,
+  "area_m2_min": 0.01,
+  "area_m2_median": 3251.18,
+  "outputs": {
+    "ring_zones_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/units_ring_zones.png",
+    "touch_vs_bridge_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/units_edges_touch_vs_bridge.png",
+    "degree_histogram_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/degree_histogram.png",
+    "area_histogram_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/unit_area_histogram.png",
+    "edges_choropleth_conductance_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/edges_choropleth_conductance.png",
+    "edges_choropleth_edge_cost_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/edges_choropleth_edge_cost.png"
+  },
+  "temporal_outputs": {
+    "temporal_wd_we_curves_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/temporal_wd_we_curves.png",
+    "temporal_slice_mass_wd_we_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/temporal_slice_mass_wd_we.png",
+    "temporal_flow_inflow_weight_weekday_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/temporal_flow_inflow_weight_weekday.png",
+    "temporal_metroflow_blend_mass_weekday_png": "F:/Aworks/2026studio/shanghaistation/data/site_3km/qa/temporal_metroflow_blend_mass_weekday.png"
+  },
+  "edge_conductance_undirected": {
+    "min": 0.060746853034772,
+    "p50": 0.3410552702888447,
+    "p98": 0.9440727973245528,
+    "max": 0.9891631463933848
+  },
+  "edge_cost_undirected": {
+    "min": 0.0,
+    "p50": 1.5925,
+    "p98": 7.705387999999995,
+    "max": 23.342
+  }
+}

@@ -1,0 +1,197 @@
+{
+  "source_dir": "F:/Aworks/2026studio/shanghaistation/data/site_3km/02-POI&AOI/1-POI/25.05/CSV/分类/按类别",
+  "poi_counts_by_category": {
+    "交通设施服务": 6645,
+    "住宿服务": 2844,
+    "体育休闲服务": 3247,
+    "公共设施": 2397,
+    "公司企业": 8032,
+    "医疗保健服务": 2314,
+    "商务住宅": 4501,
+    "地名地址信息": 11039,
+    "室内设施": 7,
+    "摩托车服务": 35,
+    "政府机构及社会团体": 3410,
+    "汽车服务": 857,
+    "汽车维修": 93,
+    "汽车销售": 160,
+    "生活服务": 14366,
+    "科教文化服务": 3961,
+    "购物服务": 23366,
+    "通行设施": 5758,
+    "金融保险服务": 1840,
+    "风景名胜": 795,
+    "餐饮服务": 13485
+  },
+  "total_poi": 109152,
+  "method": {
+    "diurnal": "Per-category POI counts × role-specific 24h prior weights (sum-normalized).",
+    "weekend_adjustment": "Retail/food/leisure up; office down; transit slightly down (for weekend curve only).",
+    "partition": "Same four clock windows for weekday and weekend: equal cumulative mass quarters on [6,23) using curve_avg(h)=normalize((wd(h)+we(h))/2).",
+    "t_id_note": "WD_AM/WD_PM/WD_EVE/WE_PM are legacy ids mapped to quality-quarters Q1–Q4; WE_PM no longer means 'weekend afternoon only'—it is the fourth shared clock slice."
+  },
+  "curves": {
+    "weekday": [
+      0.019789430896041307,
+      0.020318584211692813,
+      0.020989444018389262,
+      0.021860684305929565,
+      0.02307284706971318,
+      0.02522490141787217,
+      0.030522201326557474,
+      0.041572377981784696,
+      0.05435740857406047,
+      0.0604808670076703,
+      0.05964579151262609,
+      0.057533139551457516,
+      0.0568217900499354,
+      0.05615113592297522,
+      0.05536507614581268,
+      0.055264216693161734,
+      0.0563038891321863,
+      0.05832690061426631,
+      0.05753719661762908,
+      0.05029061686645443,
+      0.03964701016102189,
+      0.03090417864827099,
+      0.025533322536650253,
+      0.022486988737840757
+    ],
+    "weekend": [
+      0.021136909936493396,
+      0.021686101691566942,
+      0.0223719821116789,
+      0.023251635972215374,
+      0.024462688672703545,
+      0.026545801550567728,
+      0.03136860128139644,
+      0.04075862679447648,
+      0.050464242451036534,
+      0.05405991921184948,
+      0.054099551500642544,
+      0.05567662703568415,
+      0.05752820546673661,
+      0.05638477411036443,
+      0.053836305009279946,
+      0.05290370278924431,
+      0.05469673563823599,
+      0.05844198526200898,
+      0.05938812862459621,
+      0.053197997837250544,
+      0.04268611108893567,
+      0.03345500157106012,
+      0.02751135075000125,
+      0.02408701364197445
+    ],
+    "partition_avg": [
+      0.02046317041626735,
+      0.02100234295162988,
+      0.02168071306503408,
+      0.022556160139072468,
+      0.023767767871208365,
+      0.02588535148421995,
+      0.030945401303976956,
+      0.04116550238813059,
+      0.0524108255125485,
+      0.05727039310975989,
+      0.05687267150663432,
+      0.05660488329357083,
+      0.057174997758336,
+      0.05626795501666983,
+      0.05460069057754631,
+      0.05408395974120302,
+      0.055500312385211144,
+      0.058384442938137646,
+      0.058462662621112646,
+      0.05174430735185249,
+      0.04116656062497878,
+      0.032179590109665555,
+      0.02652233664332575,
+      0.023287001189907605
+    ]
+  },
+  "partition_cuts_hour": [
+    6,
+    11,
+    15,
+    18,
+    23
+  ],
+  "slices": [
+    {
+      "t_id": "WD_AM",
+      "hour_range_inclusive_start": 6,
+      "hour_range_exclusive_end": 11,
+      "mass_share_weekday_in_slice": 0.2466,
+      "mass_share_weekend_in_slice": 0.2308
+    },
+    {
+      "t_id": "WD_PM",
+      "hour_range_inclusive_start": 11,
+      "hour_range_exclusive_end": 15,
+      "mass_share_weekday_in_slice": 0.2259,
+      "mass_share_weekend_in_slice": 0.2234
+    },
+    {
+      "t_id": "WD_EVE",
+      "hour_range_inclusive_start": 15,
+      "hour_range_exclusive_end": 18,
+      "mass_share_weekday_in_slice": 0.1699,
+      "mass_share_weekend_in_slice": 0.166
+    },
+    {
+      "t_id": "WE_PM",
+      "hour_range_inclusive_start": 18,
+      "hour_range_exclusive_end": 23,
+      "mass_share_weekday_in_slice": 0.2039,
+      "mass_share_weekend_in_slice": 0.2162
+    }
+  ],
+  "flow_proxy_period_weights": {
+    "note": "curve_mass_share: fraction of full-day curve mass in slice. period_*_weight: slice mass / mean(slice masses), inflow pattern early>late via index reversal heuristic.",
+    "weekday": {
+      "WD_AM": {
+        "curve_mass_share": 0.2466,
+        "period_inflow_weight": 1.1655,
+        "period_outflow_weight": 0.9638
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2259,
+        "period_inflow_weight": 1.0676,
+        "period_outflow_weight": 0.803
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.1699,
+        "period_inflow_weight": 0.803,
+        "period_outflow_weight": 1.0676
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2039,
+        "period_inflow_weight": 0.9638,
+        "period_outflow_weight": 1.1655
+      }
+    },
+    "weekend": {
+      "WD_AM": {
+        "curve_mass_share": 0.2308,
+        "period_inflow_weight": 1.1035,
+        "period_outflow_weight": 1.0341
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2234,
+        "period_inflow_weight": 1.0684,
+        "period_outflow_weight": 0.794
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.166,
+        "period_inflow_weight": 0.794,
+        "period_outflow_weight": 1.0684
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2162,
+        "period_inflow_weight": 1.0341,
+        "period_outflow_weight": 1.1035
+      }
+    }
+  }
+}

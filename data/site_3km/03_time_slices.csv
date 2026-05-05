@@ -1,0 +1,5 @@
+﻿t_id,t_name,day_type,period,start_local,end_local,hour_range_inclusive_start,hour_range_exclusive_end
+WD_AM,第一时段（晨—午前）,weekday_and_weekend,slice_q1,06:00,11:00,6,11
+WD_PM,第二时段（午间）,weekday_and_weekend,slice_q2,11:00,15:00,11,15
+WD_EVE,第三时段（午后—傍晚）,weekday_and_weekend,slice_q3,15:00,18:00,15,18
+WE_PM,第四时段（晚间）,weekday_and_weekend,slice_q4,18:00,23:00,18,23

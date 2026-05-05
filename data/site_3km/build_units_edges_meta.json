@@ -1,0 +1,36 @@
+{
+  "n_units": 4215,
+  "n_undirected_touch_pairs": 5474,
+  "n_units_isolated_touch_only": 269,
+  "n_undirected_knn_bridge_pairs": 244,
+  "n_undirected_proximity_bridge_pairs": 9851,
+  "n_directed_edges_csv": 31138,
+  "bridge_conductance_mult": 0.28,
+  "proximity_radius_m": 160.0,
+  "proximity_max_per_node": 6,
+  "proximity_conductance_mult": 0.4,
+  "bridge_isolated_default": true,
+  "plot_crs_wkt": "PROJCRS[\"WGS 84 / UTM zone 51N\",BASEGEOGCRS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",ELLIPSOID[\"WGS 84\",6378137,298.257223563,LENGTHUNIT[\"metre\",1]],ID[\"EPSG\",6326]],PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"Degree\",0.0174532925199433]]],CONVERSION[\"UTM zone 51N\",METHOD[\"Transverse Mercator\",ID[\"EPSG\",9807]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",123,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",0.9996,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",500000,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]],ID[\"EPSG\",16051]],CS[Cartesian,2],AXIS[\"(E)\",east,ORDER[1],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],AXIS[\"(N)\",north,ORDER[2],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]]]",
+  "units_crs_output": "EPSG:4326",
+  "station_wgs84": [
+    121.451257271,
+    31.249149419
+  ],
+  "mask": "F:/Aworks/2026studio/shanghaistation/data/site_3km/SITE.buffer_3km.geojson",
+  "barrier_layers": {
+    "rail": "F:/Aworks/2026studio/shanghaistation/data/site_3km/04-交通数据/1-交通路网/1-合集/上海市_铁路线.geojson",
+    "river": "F:/Aworks/2026studio/shanghaistation/data/site_3km/11-蓝绿空间/上海市_水系-开源.geojson",
+    "expressway": "F:/Aworks/2026studio/shanghaistation/data/site_3km/04-交通数据/1-交通路网/2-分类图层/上海市_城市快速路.geojson"
+  },
+  "parameters": {
+    "alpha": 1.0,
+    "lambda_arterial": 3.0,
+    "lambda_rail": 5.0,
+    "lambda_river": 4.0,
+    "lambda_elevated": 3.0,
+    "theta": 0.12,
+    "tortuosity": 1.22,
+    "walk_m_per_min": 83.33333333333333
+  },
+  "notes": "Barrier flags use centroid–centroid segment vs buffered rail/river/expressway; walk_dist_m is centroid distance × tortuosity (no pedestrian network yet). knn_bridge edges connect units with zero parcel-touch neighbors; conductance scaled by bridge_conductance_mult. proximity_bridge adds centroid pairs within proximity_radius_m (excluding touch/knn pairs), capped per node, scaled by proximity_conductance_mult. Refine with OSM walk graph and crossing inventory when available."
+}

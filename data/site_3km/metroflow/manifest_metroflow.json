@@ -1,0 +1,52 @@
+{
+  "source": "F:/Aworks/2026studio/shanghaistation/data/all/MetroFlow/MetroFlow",
+  "crs": "EPSG:4326 (lon/lat same as stationInfo; compatible with SITE.json CRS84)",
+  "center_wgs84": [
+    121.451257271,
+    31.249149419
+  ],
+  "buffer_m": 3000.0,
+  "station_id_in_flow_csv": "metroData_InOutFlow `station` and metroData_ODFlow origin/destination use **stationID** (column stationInfo.stationID), not the leading row index.",
+  "stations_in_buffer": 23,
+  "outputs": {
+    "stations_3km_geojson": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/stations_3km.geojson",
+    "inout_10min_3km_parquet": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/inout_10min_3km.parquet",
+    "inout_row_count": 288558,
+    "od_internal_10min_3km_parquet": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/od_internal_10min_3km.parquet",
+    "od_internal_row_count": 2839492
+  },
+  "inout_columns_parquet": [
+    "date",
+    "timeslot",
+    "starttime",
+    "endtime",
+    "station",
+    "inflow",
+    "outflow",
+    "cinflow",
+    "hboinflow",
+    "nhbinflow",
+    "coutflow",
+    "hbooutflow",
+    "nhboutflow"
+  ],
+  "od_columns_parquet": [
+    "date",
+    "timeslot",
+    "starttime",
+    "endtime",
+    "originstation",
+    "destinationstation",
+    "flow",
+    "cflow",
+    "hboflow",
+    "nhbflow"
+  ],
+  "time_semantics": {
+    "period": "2017-05-01 to 2017-08-31 (dataset scope)",
+    "timeslot": "10-minute bins; startTime/endTime like 060000,061000",
+    "workday_calendar": "F:/Aworks/2026studio/shanghaistation/data/all/MetroFlow/MetroFlow/MetaData/workday_calendar.csv",
+    "weather_hourly": "F:/Aworks/2026studio/shanghaistation/data/all/MetroFlow/MetroFlow/MetaData/shanghai_weatherHourly.csv"
+  },
+  "merge_with_site_3km": "Spatial join: buffer stations to units via unit polygons; aggregate inFlow/outFlow by unit_id and your t_id windows (map timeslot hours to slices). 2017 network vs 2025 POI: use for diurnal SHAPE calibration, not level matching."
+}

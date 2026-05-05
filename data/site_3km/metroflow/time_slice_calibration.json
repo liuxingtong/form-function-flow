@@ -1,0 +1,154 @@
+{
+  "caveat": "MetroFlow 子集为 2017 年样本；与当前 POI/建成环境存在年际差。工作日历字段 isWorday 将法定假日等记为非工作日，与「仅周六日」的周末定义不完全一致。",
+  "inputs": {
+    "inout_parquet": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/inout_10min_3km.parquet",
+    "workday_calendar": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/MetaData_workday_calendar.csv",
+    "poi_synthesis": "F:/Aworks/2026studio/shanghaistation/data/site_3km/poi_temporal_synthesis.json"
+  },
+  "aggregation": "对缓冲区内各站 10min 行求和 inflow+outflow 为 activity；由 starttime 取整点小时，映射到与 03_time_slices 相同的四小时窗 WD_AM[6,11)、WD_PM[11,15)、WD_EVE[15,18)、WE_PM[18,23)。按 is_workday=1/0 分别池化所有样本日后再归一化质量占比。",
+  "n_sample_dates": {
+    "workday_calendar_1": 87,
+    "workday_calendar_0": 36
+  },
+  "empirical_flow_proxy_period_weights": {
+    "note": "curve_mass_share：各窗 activity 占全日（池化）份额。period_inflow_weight / period_outflow_weight：该窗总进站或出站 / 四窗均值（真实分向，非 POI 脚本的反转启发式）。",
+    "weekday": {
+      "WD_AM": {
+        "curve_mass_share": 0.3415,
+        "period_inflow_weight": 1.0098,
+        "period_outflow_weight": 1.6948
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.1702,
+        "period_inflow_weight": 0.6684,
+        "period_outflow_weight": 0.6919
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.2058,
+        "period_inflow_weight": 0.9887,
+        "period_outflow_weight": 0.6706
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2825,
+        "period_inflow_weight": 1.3331,
+        "period_outflow_weight": 0.9427
+      }
+    },
+    "weekend": {
+      "WD_AM": {
+        "curve_mass_share": 0.2104,
+        "period_inflow_weight": 0.6958,
+        "period_outflow_weight": 0.9801
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2621,
+        "period_inflow_weight": 0.9684,
+        "period_outflow_weight": 1.1244
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.2394,
+        "period_inflow_weight": 1.0249,
+        "period_outflow_weight": 0.8938
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2881,
+        "period_inflow_weight": 1.3109,
+        "period_outflow_weight": 1.0017
+      }
+    }
+  },
+  "blend_alpha_metroflow": 0.5,
+  "synthetic_flow_proxy_period_weights_ref": {
+    "weekday": {
+      "WD_AM": {
+        "curve_mass_share": 0.2466,
+        "period_inflow_weight": 1.1655,
+        "period_outflow_weight": 0.9638
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2259,
+        "period_inflow_weight": 1.0676,
+        "period_outflow_weight": 0.803
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.1699,
+        "period_inflow_weight": 0.803,
+        "period_outflow_weight": 1.0676
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2039,
+        "period_inflow_weight": 0.9638,
+        "period_outflow_weight": 1.1655
+      }
+    },
+    "weekend": {
+      "WD_AM": {
+        "curve_mass_share": 0.2308,
+        "period_inflow_weight": 1.1035,
+        "period_outflow_weight": 1.0341
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2234,
+        "period_inflow_weight": 1.0684,
+        "period_outflow_weight": 0.794
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.166,
+        "period_inflow_weight": 0.794,
+        "period_outflow_weight": 1.0684
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2162,
+        "period_inflow_weight": 1.0341,
+        "period_outflow_weight": 1.1035
+      }
+    }
+  },
+  "flow_proxy_period_weights_blended": {
+    "note": "Blended with alpha=0.5: curve_mass_share and period_*_weights mix synthetic (POI curves) and MetroFlow empirical buffer totals.",
+    "weekday": {
+      "WD_AM": {
+        "curve_mass_share": 0.2941,
+        "period_inflow_weight": 1.0877,
+        "period_outflow_weight": 1.3293
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.1981,
+        "period_inflow_weight": 0.868,
+        "period_outflow_weight": 0.7474
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.1879,
+        "period_inflow_weight": 0.8959,
+        "period_outflow_weight": 0.8691
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2432,
+        "period_inflow_weight": 1.1484,
+        "period_outflow_weight": 1.0541
+      }
+    },
+    "weekend": {
+      "WD_AM": {
+        "curve_mass_share": 0.2206,
+        "period_inflow_weight": 0.8996,
+        "period_outflow_weight": 1.0071
+      },
+      "WD_PM": {
+        "curve_mass_share": 0.2427,
+        "period_inflow_weight": 1.0184,
+        "period_outflow_weight": 0.9592
+      },
+      "WD_EVE": {
+        "curve_mass_share": 0.2027,
+        "period_inflow_weight": 0.9094,
+        "period_outflow_weight": 0.9811
+      },
+      "WE_PM": {
+        "curve_mass_share": 0.2521,
+        "period_inflow_weight": 1.1725,
+        "period_outflow_weight": 1.0526
+      }
+    }
+  }
+}
