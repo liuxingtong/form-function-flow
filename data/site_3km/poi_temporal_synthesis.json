@@ -1,5 +1,5 @@
 {
-  "source_dir": "F:/Aworks/2026studio/shanghaistation/data/site_3km/02-POI&AOI/1-POI/25.05/CSV/分类/按类别",
+  "source_dir": "F:/Aworks/2026studio/shanghaistation/form-function-flow/data/site_3km/02-POI&AOI/1-POI/25.05/CSV/分类/按类别",
   "poi_counts_by_category": {
     "交通设施服务": 6645,
     "住宿服务": 2844,
@@ -27,8 +27,8 @@
   "method": {
     "diurnal": "Per-category POI counts × role-specific 24h prior weights (sum-normalized).",
     "weekend_adjustment": "Retail/food/leisure up; office down; transit slightly down (for weekend curve only).",
-    "partition": "Same four clock windows for weekday and weekend: equal cumulative mass quarters on [6,23) using curve_avg(h)=normalize((wd(h)+we(h))/2).",
-    "t_id_note": "WD_AM/WD_PM/WD_EVE/WE_PM are legacy ids mapped to quality-quarters Q1–Q4; WE_PM no longer means 'weekend afternoon only'—it is the fourth shared clock slice."
+    "partition": "Independent four clock windows for weekday (wd) and weekend (we): equal cumulative mass quarters on [6,23) **separately** on wd(h) and we(h). curve_avg(h) retained for diagnostics only.",
+    "t_id_note": "Weekday ids: WD_AM/WD_PM/WD_EVE/WD_NT map to Q1–Q4 on the weekday curve; weekend ids: WE_AM/WE_MD/WE_EVE/WE_NT map to Q1–Q4 on the weekend curve. Clock boundaries may differ between day types."
   },
   "curves": {
     "weekday": [
@@ -110,41 +110,70 @@
       0.023287001189907605
     ]
   },
-  "partition_cuts_hour": [
+  "partition_cuts_hour_weekday": [
     6,
     11,
     15,
     18,
     23
   ],
-  "slices": [
+  "partition_cuts_hour_weekend": [
+    6,
+    11,
+    15,
+    19,
+    23
+  ],
+  "slices_weekday": [
     {
       "t_id": "WD_AM",
       "hour_range_inclusive_start": 6,
       "hour_range_exclusive_end": 11,
-      "mass_share_weekday_in_slice": 0.2466,
-      "mass_share_weekend_in_slice": 0.2308
+      "mass_share_weekday_in_slice": 0.2466
     },
     {
       "t_id": "WD_PM",
       "hour_range_inclusive_start": 11,
       "hour_range_exclusive_end": 15,
-      "mass_share_weekday_in_slice": 0.2259,
-      "mass_share_weekend_in_slice": 0.2234
+      "mass_share_weekday_in_slice": 0.2259
     },
     {
       "t_id": "WD_EVE",
       "hour_range_inclusive_start": 15,
       "hour_range_exclusive_end": 18,
-      "mass_share_weekday_in_slice": 0.1699,
-      "mass_share_weekend_in_slice": 0.166
+      "mass_share_weekday_in_slice": 0.1699
     },
     {
-      "t_id": "WE_PM",
+      "t_id": "WD_NT",
       "hour_range_inclusive_start": 18,
       "hour_range_exclusive_end": 23,
-      "mass_share_weekday_in_slice": 0.2039,
-      "mass_share_weekend_in_slice": 0.2162
+      "mass_share_weekday_in_slice": 0.2039
+    }
+  ],
+  "slices_weekend": [
+    {
+      "t_id": "WE_AM",
+      "hour_range_inclusive_start": 6,
+      "hour_range_exclusive_end": 11,
+      "mass_share_weekend_in_slice": 0.2308
+    },
+    {
+      "t_id": "WE_MD",
+      "hour_range_inclusive_start": 11,
+      "hour_range_exclusive_end": 15,
+      "mass_share_weekend_in_slice": 0.2234
+    },
+    {
+      "t_id": "WE_EVE",
+      "hour_range_inclusive_start": 15,
+      "hour_range_exclusive_end": 19,
+      "mass_share_weekend_in_slice": 0.2254
+    },
+    {
+      "t_id": "WE_NT",
+      "hour_range_inclusive_start": 19,
+      "hour_range_exclusive_end": 23,
+      "mass_share_weekend_in_slice": 0.1569
     }
   ],
   "flow_proxy_period_weights": {
@@ -165,31 +194,31 @@
         "period_inflow_weight": 0.803,
         "period_outflow_weight": 1.0676
       },
-      "WE_PM": {
+      "WD_NT": {
         "curve_mass_share": 0.2039,
         "period_inflow_weight": 0.9638,
         "period_outflow_weight": 1.1655
       }
     },
     "weekend": {
-      "WD_AM": {
+      "WE_AM": {
         "curve_mass_share": 0.2308,
         "period_inflow_weight": 1.1035,
-        "period_outflow_weight": 1.0341
+        "period_outflow_weight": 0.7501
       },
-      "WD_PM": {
+      "WE_MD": {
         "curve_mass_share": 0.2234,
         "period_inflow_weight": 1.0684,
-        "period_outflow_weight": 0.794
+        "period_outflow_weight": 1.078
       },
-      "WD_EVE": {
-        "curve_mass_share": 0.166,
-        "period_inflow_weight": 0.794,
+      "WE_EVE": {
+        "curve_mass_share": 0.2254,
+        "period_inflow_weight": 1.078,
         "period_outflow_weight": 1.0684
       },
-      "WE_PM": {
-        "curve_mass_share": 0.2162,
-        "period_inflow_weight": 1.0341,
+      "WE_NT": {
+        "curve_mass_share": 0.1569,
+        "period_inflow_weight": 0.7501,
         "period_outflow_weight": 1.1035
       }
     }

@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib import colors as mcolors
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon, Rectangle
 from sklearn.mixture import GaussianMixture
@@ -26,6 +27,7 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 from site_map_overlay import plot_site_boundary, resolve_site_json_path  # noqa: E402
+from time_slice_constants import DEFAULT_ANCHOR_TID, T_CYCL_PAIRS, T_ORDER  # noqa: E402
 
 RNG = 42
 # 情景推演总开关：关闭时不计算 pn_cache、不写 state_transition_result、不输出 G03–G09 / G_scenario_* / G08。
@@ -33,8 +35,7 @@ ENABLE_SCENARIO_ENGINE = False
 # 情景推演：约 30% 单元主导类相对现状可变化，多套情景各用互斥单元子集（仅当 ENABLE_SCENARIO_ENGINE 且下列长度>1 时生效）。
 TARGET_SCENARIO_FLIP_FRAC = 0.30
 FLIP_FRAC_TOL = 0.02
-T_ORDER = ["WD_AM", "WD_PM", "WD_EVE", "WE_PM"]
-T_PAIRS = [("WD_AM", "WD_PM"), ("WD_PM", "WD_EVE"), ("WD_EVE", "WE_PM"), ("WE_PM", "WD_AM")]
+T_PAIRS = list(T_CYCL_PAIRS)
 
 # 默认仅保留「现状」占位；扩展情景请在 ENABLE_SCENARIO_ENGINE=True 时追加条目。
 SCENARIOS = [
@@ -713,6 +714,38 @@ def _configure_plot_fonts() -> None:
     plt.rcParams["axes.unicode_minus"] = False
 
 
+def _gmm_prob_block_radar(
+    means_orig: np.ndarray,
+    feat_cols: list[str],
+    k: int,
+    gi: int,
+    prefix: str,
+) -> tuple[np.ndarray, list[str]]:
+    """单层（形/功/流）p_*1…7 在 K 个综合类上的 GMM 反标准化均值；块内按维 min–max 归一便于读图。"""
+    cols = [f"{prefix}{j}" for j in range(1, 8)]
+    idx = [feat_cols.index(c) for c in cols]
+    block = means_orig[:k][:, idx]
+    lo = block.min(axis=0)
+    hi = block.max(axis=0)
+    rng = np.maximum(hi - lo, 1e-12)
+    vn = (means_orig[gi, idx] - lo) / rng
+    letter = prefix[-1].upper()
+    labs = [f"{letter}{j}" for j in range(1, 8)]
+    return vn.astype(float), labs
+
+
+def _plot_polar_profile(ax, vn: np.ndarray, labs: list[str], color: str, title: str) -> None:
+    n_dim = len(vn)
+    angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+    angles += angles[:1]
+    vals = np.asarray(vn, dtype=float).tolist() + [float(vn[0])]
+    ax.plot(angles, vals, color=color, linewidth=1.7)
+    ax.fill(angles, vals, color=color, alpha=0.12)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labs, fontsize=7)
+    ax.set_title(title, fontsize=9, pad=10)
+
+
 def _plot_unit_category_map(
     units_gdf: gpd.GeoDataFrame,
     df_cat: pd.DataFrame,
@@ -881,12 +914,12 @@ def main() -> None:
     k = p_g.shape[1]
     means_orig = scaler.inverse_transform(gmm.means_)
     feature_names = feat_cols
-    label_names, naming_basis = _assign_state_names(means_orig, feature_names, k)
-    state_palette = _global_state_palette_hex(label_names)
-    # ensure mapping component index -> label
-    comp_to_label = {i: label_names[i] for i in range(k)}
+    semantic_labels, naming_basis = _assign_state_names(means_orig, feature_names, k)
+    label_codes = [f"G{i + 1}" for i in range(k)]
+    state_palette = _global_state_palette_hex(label_codes)
+    comp_to_label = {i: label_codes[i] for i in range(k)}
 
-    # global_state table
+    # global_state table（对外统一编号 G1…Gk；语义名称写入 meta）
     gdf = merged[["unit_id", "t_id"]].copy()
     for i in range(k):
         gdf[f"p_G{i+1}"] = p_g[:, i]
@@ -902,12 +935,13 @@ def main() -> None:
         "n_components": int(k),
         "covariance_type": gmm.covariance_type,
         "feature_columns": feat_cols,
-        "component_labels": {str(i): comp_to_label[i] for i in range(k)},
+        "component_labels": {str(i): label_codes[i] for i in range(k)},
+        "component_labels_semantic": {str(i): semantic_labels[i] for i in range(k)},
         "naming_basis": naming_basis,
         "state_color_hex": state_palette,
         "random_state": RNG,
         "inference": {
-            "transition_use": "WE_PM_to_WD_AM_row_fallback_T_avg",
+            "transition_use": "WE_NT_to_WD_AM_row_fallback_T_avg",
             "transition_matrix_mode": "soft_probability_mass_row_norm",
             "w_scen": float(args.w_scen),
             "affinity_gain": float(args.affinity_gain),
@@ -930,14 +964,14 @@ def main() -> None:
         edges = pd.read_csv(args.edges)
         neigh_all = _neighbor_prob_matrix(edges, p_g, unit_ids, uid_index, T_ORDER)
 
-    T_we_pm = trans_mats[("WE_PM", "WD_AM")]
-    if float(np.asarray(T_we_pm).sum()) < 1e-12:
-        T_we_pm = T_avg.copy()
+    T_wrap = trans_mats.get(("WE_NT", "WD_AM"))
+    if T_wrap is None or float(np.asarray(T_wrap).sum()) < 1e-12:
+        T_wrap = T_avg.copy()
 
     trans_df = pd.DataFrame()
-    anchor_tid = "WE_PM"
+    anchor_tid = DEFAULT_ANCHOR_TID
     if ENABLE_SCENARIO_ENGINE:
-        # state_transition_result: anchor WE_PM；推演用 WE_PM→WD_AM 转移；情景仅作用于互斥子集并混合至目标翻转率
+        # state_transition_result: anchor WE_NT；推演用 WE_NT→WD_AM 转移；情景仅作用于互斥子集并混合至目标翻转率
         bar_series = merged.set_index(["unit_id", "t_id"])["barrier_index"].astype(float)
         anchor_uids = _uids_anchor(merged, unit_ids, anchor_tid)
         non_baseline_scenarios = [sc for sc in SCENARIOS if int(sc["scenario_id"]) != 0]
@@ -965,12 +999,12 @@ def main() -> None:
                 sid = sc["scenario_id"]
                 if sid == 0:
                     continue
-                pn_raw_cache[(uid, sid)] = _p_next(
+                pn_raw_cache[(uid, sid)] =                 _p_next(
                     p,
-                    T_we_pm,
+                    T_wrap,
                     neigh,
                     sc,
-                    label_names,
+                    semantic_labels,
                     bval,
                     affinity_gain=args.affinity_gain,
                     w_scen=args.w_scen,
@@ -1005,17 +1039,21 @@ def main() -> None:
             w = np.where((merged["unit_id"].values == uid) & (merged["t_id"].values == anchor_tid))[0]
             ix = int(w[0])
             p0 = p_by_uid[uid]
-            cur = comp_to_label[int(np.argmax(p0))]
+            ci0 = int(np.argmax(p0))
+            cur = comp_to_label[ci0]
+            cur_sem = semantic_labels[ci0]
             for sc in SCENARIOS:
                 sid = sc["scenario_id"]
                 pn = pn_cache[(uid, sid)].copy()
-                nxt = comp_to_label[int(np.argmax(pn))]
-                tgt_boost = _scenario_affinity(sc, label_names, k, gain=args.affinity_gain)
+                ni = int(np.argmax(pn))
+                nxt = comp_to_label[ni]
+                nxt_sem = semantic_labels[ni]
+                tgt_boost = _scenario_affinity(sc, semantic_labels, k, gain=args.affinity_gain)
                 tgt_i = int(np.argmax(tgt_boost)) if sid != 0 else int(np.argmax(p0))
                 sens = 0.0 if sid == 0 else float(pn[tgt_i] - p0[tgt_i])
                 tv = float(np.sum(np.abs(pn - p0)) * 0.5)
                 stress = float(
-                    sum(p0[j] for j in range(k) if any(x in comp_to_label[j] for x in ("承压", "阻隔", "低激活")))
+                    sum(p0[j] for j in range(k) if any(x in semantic_labels[j] for x in ("承压", "阻隔", "低激活")))
                 )
                 dist = float(merged.loc[ix, "dist_to_station"])
                 dmx = merged["dist_to_station"].max() + 1e-9
@@ -1032,8 +1070,8 @@ def main() -> None:
                     d_idx = int(np.argmax(d))
                     delta_argmax_idx = d_idx
                     delta_leader_state = comp_to_label[d_idx]
-                    change_four = _argmax_change_four_class(cur, nxt)
-                    change_three = _ternary_vs_baseline(cur, nxt, bool(same_mx))
+                    change_four = _argmax_change_four_class(cur_sem, nxt_sem)
+                    change_three = _ternary_vs_baseline(cur_sem, nxt_sem, bool(same_mx))
                     binary_flip = "未变" if same_mx else "改变"
                 rows.append(
                     {
@@ -1041,7 +1079,7 @@ def main() -> None:
                         "scenario_id": sid,
                         "current_global_state": cur,
                         "next_global_state": nxt,
-                        "change_type": _change_type(cur, nxt),
+                        "change_type": _change_type(cur_sem, nxt_sem),
                         "transition_probability": float(pn[int(np.argmax(pn))]),
                         "intervention_sensitivity": sens,
                         "priority_score": priority,
@@ -1104,9 +1142,9 @@ def main() -> None:
     map_gdf.plot(color=map_gdf["color"], ax=ax, edgecolor="0.2", linewidth=0.15, zorder=1)
     _overlay_site_structure_hints(ax, map_gdf, site_boundary)
     site_ok = plot_site_boundary(ax, map_gdf.crs, site_boundary)
-    ax.set_title("G01 综合城市状态地图（WE_PM）\n浅色虚框：SITE 内三类结构示意（住区衔接界面 / 叠合阻隔廊道 / 广域存量场地）")
+    ax.set_title("G01 综合城市状态地图（WE_NT）\n浅色虚框：SITE 内三类结构示意（住区衔接界面 / 叠合阻隔廊道 / 广域存量场地）")
     ax.axis("off")
-    leg_states = [ln for ln in label_names if ln in set(cats) - {"NA"}]
+    leg_states = [ln for ln in label_codes if ln in set(cats) - {"NA"}]
     patches = [Rectangle((0, 0), 1, 1, fc=state_palette[ln]) for ln in leg_states]
     leg_l = list(leg_states)
     if site_ok:
@@ -1117,7 +1155,7 @@ def main() -> None:
     plt.close(fig)
 
     # G02 transition heatmap (averaged)
-    tick_mx = _state_matrix_ticklabels(label_names)
+    tick_mx = _state_matrix_ticklabels(label_codes)
     fig, ax = plt.subplots(figsize=(10.5, 8.5))
     vmax_g02 = float(max(float(T_avg.max()), 0.06))
     im = ax.imshow(T_avg, cmap="YlOrRd", vmin=0.0, vmax=vmax_g02, aspect="equal")
@@ -1127,10 +1165,10 @@ def main() -> None:
     ax.set_yticklabels(tick_mx, fontsize=7.5)
     ax.set_xlabel("to（下一时刻综合状态）")
     ax.set_ylabel("from（当前综合状态）")
-    ax.set_title("G02 综合状态转移矩阵（四段平均；软概率共现流，行归一）")
+    ax.set_title("G02 综合状态转移矩阵（八段循环平均；软概率共现流，行归一）")
     plt.colorbar(im, ax=ax, fraction=0.035, pad=0.02)
     for i in range(k):
-        rgb = mcolors.to_rgb(state_palette[label_names[i]])
+        rgb = mcolors.to_rgb(state_palette[label_codes[i]])
         dim = tuple(max(0.0, min(1.0, x * 0.42)) for x in rgb)
         for tick in (ax.get_xticklabels()[i], ax.get_yticklabels()[i]):
             tick.set_color(dim)
@@ -1138,26 +1176,86 @@ def main() -> None:
     fig.savefig(fig_dir / "G02_综合状态转移矩阵.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
 
-    # G02b：与 WE_PM 锚点一致的下一时刻方向（WE_PM→WD_AM）
+    # G02b：与 WE_NT 锚点一致的下一时刻方向（WE_NT→WD_AM）
     fig, ax = plt.subplots(figsize=(10.5, 8.5))
-    vmax_b = float(max(float(T_we_pm.max()), 0.06))
-    im2 = ax.imshow(T_we_pm, cmap="YlOrRd", vmin=0.0, vmax=vmax_b, aspect="equal")
+    vmax_b = float(max(float(T_wrap.max()), 0.06))
+    im2 = ax.imshow(T_wrap, cmap="YlOrRd", vmin=0.0, vmax=vmax_b, aspect="equal")
     ax.set_xticks(range(k))
     ax.set_yticks(range(k))
     ax.set_xticklabels(tick_mx, rotation=0, ha="center", fontsize=7.5)
     ax.set_yticklabels(tick_mx, fontsize=7.5)
     ax.set_xlabel("to（下一时刻 WD_AM）")
-    ax.set_ylabel("from（当前 WE_PM 软分布参照行）")
-    ax.set_title("G02b 综合状态转移矩阵（WE_PM→WD_AM；软概率流行归一）")
+    ax.set_ylabel("from（当前 WE_NT 软分布参照行）")
+    ax.set_title("G02b 综合状态转移矩阵（WE_NT→WD_AM；软概率流行归一）")
     plt.colorbar(im2, ax=ax, fraction=0.035, pad=0.02)
     for i in range(k):
-        rgb = mcolors.to_rgb(state_palette[label_names[i]])
+        rgb = mcolors.to_rgb(state_palette[label_codes[i]])
         dim = tuple(max(0.0, min(1.0, x * 0.42)) for x in rgb)
         for tick in (ax.get_xticklabels()[i], ax.get_yticklabels()[i]):
             tick.set_color(dim)
             tick.set_fontweight("semibold")
-    fig.savefig(fig_dir / "G02b_WE_PM至WD_AM转移矩阵.png", dpi=200, bbox_inches="tight")
+    fig.savefig(fig_dir / "G02b_WE_NT至WD_AM转移矩阵.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
+
+    fig_c, axes_c = plt.subplots(4, 2, figsize=(13.6, 22.0))
+    for ax_idx, (t0, t1) in enumerate(T_PAIRS):
+        ax = axes_c[ax_idx // 2, ax_idx % 2]
+        Mseg = trans_mats[(t0, t1)]
+        vmax_s = float(max(float(Mseg.max()), 0.06))
+        im_c = ax.imshow(Mseg, cmap="YlOrRd", vmin=0.0, vmax=vmax_s, aspect="equal")
+        ax.set_xticks(range(k))
+        ax.set_yticks(range(k))
+        ax.set_xticklabels(tick_mx, rotation=0, ha="center", fontsize=6.5)
+        ax.set_yticklabels(tick_mx, fontsize=6.5)
+        ax.set_xlabel("to（下一时段综合状态）")
+        ax.set_ylabel("from（当前时段综合状态）")
+        ax.set_title(f"{t0}→{t1}")
+        plt.colorbar(im_c, ax=ax, fraction=0.046, pad=0.02)
+        for ii in range(k):
+            rgb = mcolors.to_rgb(state_palette[label_codes[ii]])
+            dim = tuple(max(0.0, min(1.0, x * 0.42)) for x in rgb)
+            for tick in (ax.get_xticklabels()[ii], ax.get_yticklabels()[ii]):
+                tick.set_color(dim)
+                tick.set_fontweight("semibold")
+    fig_c.suptitle("G02c 综合状态分段转移矩阵（软概率共现流；行归一）", fontsize=12, y=0.995)
+    fig_c.tight_layout(rect=[0, 0, 1, 0.97])
+    fig_c.savefig(fig_dir / "G02c_八段转移热力组图.png", dpi=200, bbox_inches="tight")
+    plt.close(fig_c)
+
+    for gi in range(k):
+        glabel = label_codes[gi]
+        col_hex = state_palette[glabel]
+        fig_g = plt.figure(figsize=(14.4, 17.5))
+        gs_g = GridSpec(2, 1, figure=fig_g, height_ratios=[0.38, 1.0], hspace=0.22)
+        gs_top = GridSpecFromSubplotSpec(1, 3, subplot_spec=gs_g[0], wspace=0.38)
+        titles_triple = ("形：p_M1–M7", "功：p_F1–F7", "流：p_R1–R7")
+        for pi, pfx in enumerate(("p_M", "p_F", "p_R")):
+            axp = fig_g.add_subplot(gs_top[0, pi], projection="polar")
+            vn, labs = _gmm_prob_block_radar(means_orig, feat_cols, k, gi, pfx)
+            _plot_polar_profile(axp, vn, labs, col_hex, titles_triple[pi])
+        gs_maps = GridSpecFromSubplotSpec(4, 2, subplot_spec=gs_g[1], wspace=0.08, hspace=0.12)
+        for ax_idx, tid in enumerate(T_ORDER):
+            ax = fig_g.add_subplot(gs_maps[ax_idx // 2, ax_idx % 2])
+            sub = gdf.loc[gdf["t_id"] == tid, ["unit_id", "global_state"]]
+            mg = units_gdf.merge(sub, on="unit_id", how="left")
+            hit = mg["global_state"].eq(glabel).fillna(False)
+            mg.loc[~hit].plot(ax=ax, color="#eaeaea", edgecolor="none", linewidth=0)
+            sh = mg.loc[hit]
+            if len(sh) > 0:
+                sh.plot(ax=ax, color=col_hex, edgecolor="k", linewidth=0.12, alpha=0.92)
+            _overlay_site_structure_hints(ax, mg, site_boundary)
+            plot_site_boundary(ax, mg.crs, site_boundary)
+            ax.set_title(tid, fontsize=10)
+            ax.axis("off")
+        sem = semantic_labels[gi]
+        fig_g.suptitle(
+            f"{glabel} · {sem}\n三联雷达（GMM 分量均值；各块内 K 类 min–max）与八时段单元分布",
+            fontsize=11,
+            y=0.98,
+        )
+        safe_fn = re.sub(r'[/\\:*?"<>|]', "_", glabel)
+        fig_g.savefig(fig_dir / f"{safe_fn}_形功流雷达与八时段分布.png", dpi=200, bbox_inches="tight")
+        plt.close(fig_g)
 
     if ENABLE_SCENARIO_ENGINE:
         non_baseline_scenarios = [sc for sc in SCENARIOS if int(sc["scenario_id"]) != 0]
@@ -1185,9 +1283,9 @@ def main() -> None:
             mg.plot(color=mg["color"].fillna("#dddddd"), ax=ax, edgecolor="0.25", linewidth=0.12, zorder=1)
             _overlay_site_structure_hints(ax, mg, site_boundary)
             site_ok = plot_site_boundary(ax, mg.crs, site_boundary)
-            ax.set_title(f"情景{sid} {sc['name']}：推演后综合状态（WE_PM 锚点）")
+            ax.set_title(f"情景{sid} {sc['name']}：推演后综合状态（WE_NT 锚点）")
             ax.axis("off")
-            leg2 = [ln for ln in label_names if ln in set(cats2)]
+            leg2 = [ln for ln in label_codes if ln in set(cats2)]
             ps = [Rectangle((0, 0), 1, 1, fc=state_palette[ln]) for ln in leg2]
             if site_ok:
                 ps.append(Line2D([0], [0], color="#d90429", lw=2.2, linestyle=(0, (5, 3))))

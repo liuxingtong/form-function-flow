@@ -1,11 +1,11 @@
 {
   "caveat": "MetroFlow 子集为 2017 年样本；与当前 POI/建成环境存在年际差。工作日历字段 isWorday 将法定假日等记为非工作日，与「仅周六日」的周末定义不完全一致。",
   "inputs": {
-    "inout_parquet": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/inout_10min_3km.parquet",
-    "workday_calendar": "F:/Aworks/2026studio/shanghaistation/data/site_3km/metroflow/MetaData_workday_calendar.csv",
-    "poi_synthesis": "F:/Aworks/2026studio/shanghaistation/data/site_3km/poi_temporal_synthesis.json"
+    "inout_parquet": "F:/Aworks/2026studio/shanghaistation/form-function-flow/data/site_3km/metroflow/inout_10min_3km.parquet",
+    "workday_calendar": "F:/Aworks/2026studio/shanghaistation/form-function-flow/data/site_3km/metroflow/MetaData_workday_calendar.csv",
+    "poi_synthesis": "F:/Aworks/2026studio/shanghaistation/form-function-flow/data/site_3km/poi_temporal_synthesis.json"
   },
-  "aggregation": "对缓冲区内各站 10min 行求和 inflow+outflow 为 activity；由 starttime 取整点小时，映射到与 03_time_slices 相同的四小时窗 WD_AM[6,11)、WD_PM[11,15)、WD_EVE[15,18)、WE_PM[18,23)。按 is_workday=1/0 分别池化所有样本日后再归一化质量占比。",
+  "aggregation": "对缓冲区内各站 10min 行求和 inflow+outflow 为 activity；由 starttime 取整点小时，按 poi_temporal_synthesis.json 中工作日/周末各自的切片边界映射 t_id；按 is_workday=1/0 分别池化后再按四窗归一化质量占比。",
   "n_sample_dates": {
     "workday_calendar_1": 87,
     "workday_calendar_0": 36
@@ -28,32 +28,32 @@
         "period_inflow_weight": 0.9887,
         "period_outflow_weight": 0.6706
       },
-      "WE_PM": {
+      "WD_NT": {
         "curve_mass_share": 0.2825,
         "period_inflow_weight": 1.3331,
         "period_outflow_weight": 0.9427
       }
     },
     "weekend": {
-      "WD_AM": {
+      "WE_AM": {
         "curve_mass_share": 0.2104,
         "period_inflow_weight": 0.6958,
         "period_outflow_weight": 0.9801
       },
-      "WD_PM": {
+      "WE_MD": {
         "curve_mass_share": 0.2621,
         "period_inflow_weight": 0.9684,
         "period_outflow_weight": 1.1244
       },
-      "WD_EVE": {
-        "curve_mass_share": 0.2394,
-        "period_inflow_weight": 1.0249,
-        "period_outflow_weight": 0.8938
+      "WE_EVE": {
+        "curve_mass_share": 0.3113,
+        "period_inflow_weight": 1.3338,
+        "period_outflow_weight": 1.1609
       },
-      "WE_PM": {
-        "curve_mass_share": 0.2881,
-        "period_inflow_weight": 1.3109,
-        "period_outflow_weight": 1.0017
+      "WE_NT": {
+        "curve_mass_share": 0.2162,
+        "period_inflow_weight": 1.0021,
+        "period_outflow_weight": 0.7346
       }
     }
   },
@@ -75,31 +75,31 @@
         "period_inflow_weight": 0.803,
         "period_outflow_weight": 1.0676
       },
-      "WE_PM": {
+      "WD_NT": {
         "curve_mass_share": 0.2039,
         "period_inflow_weight": 0.9638,
         "period_outflow_weight": 1.1655
       }
     },
     "weekend": {
-      "WD_AM": {
+      "WE_AM": {
         "curve_mass_share": 0.2308,
         "period_inflow_weight": 1.1035,
-        "period_outflow_weight": 1.0341
+        "period_outflow_weight": 0.7501
       },
-      "WD_PM": {
+      "WE_MD": {
         "curve_mass_share": 0.2234,
         "period_inflow_weight": 1.0684,
-        "period_outflow_weight": 0.794
+        "period_outflow_weight": 1.078
       },
-      "WD_EVE": {
-        "curve_mass_share": 0.166,
-        "period_inflow_weight": 0.794,
+      "WE_EVE": {
+        "curve_mass_share": 0.2254,
+        "period_inflow_weight": 1.078,
         "period_outflow_weight": 1.0684
       },
-      "WE_PM": {
-        "curve_mass_share": 0.2162,
-        "period_inflow_weight": 1.0341,
+      "WE_NT": {
+        "curve_mass_share": 0.1569,
+        "period_inflow_weight": 0.7501,
         "period_outflow_weight": 1.1035
       }
     }
@@ -122,32 +122,32 @@
         "period_inflow_weight": 0.8959,
         "period_outflow_weight": 0.8691
       },
-      "WE_PM": {
+      "WD_NT": {
         "curve_mass_share": 0.2432,
         "period_inflow_weight": 1.1484,
         "period_outflow_weight": 1.0541
       }
     },
     "weekend": {
-      "WD_AM": {
+      "WE_AM": {
         "curve_mass_share": 0.2206,
         "period_inflow_weight": 0.8996,
-        "period_outflow_weight": 1.0071
+        "period_outflow_weight": 0.8651
       },
-      "WD_PM": {
+      "WE_MD": {
         "curve_mass_share": 0.2427,
         "period_inflow_weight": 1.0184,
-        "period_outflow_weight": 0.9592
+        "period_outflow_weight": 1.1012
       },
-      "WD_EVE": {
-        "curve_mass_share": 0.2027,
-        "period_inflow_weight": 0.9094,
-        "period_outflow_weight": 0.9811
+      "WE_EVE": {
+        "curve_mass_share": 0.2683,
+        "period_inflow_weight": 1.2059,
+        "period_outflow_weight": 1.1147
       },
-      "WE_PM": {
-        "curve_mass_share": 0.2521,
-        "period_inflow_weight": 1.1725,
-        "period_outflow_weight": 1.0526
+      "WE_NT": {
+        "curve_mass_share": 0.1865,
+        "period_inflow_weight": 0.8761,
+        "period_outflow_weight": 0.919
       }
     }
   }

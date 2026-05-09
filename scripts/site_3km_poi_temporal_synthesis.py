@@ -1,8 +1,8 @@
 """
 Build POI-based synthetic diurnal weights from data/site_3km clipped POI GeoJSONs,
-derive four time-slice boundaries shared by weekday and weekend (equal cumulative
-mass quarters on [6,23) of the average WD/WE curve), and write 03_time_slices.csv
-+ poi_temporal_synthesis.json.
+derive **two** sets of four time-slice boundaries — weekday vs weekend — each as equal
+cumulative mass quarters on [6,23) of its own curve (wd vs we), and write
+03_time_slices.csv + poi_temporal_synthesis.json.
 """
 from __future__ import annotations
 
@@ -10,20 +10,27 @@ import csv
 import json
 import math
 import re
+import sys
 from pathlib import Path
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from time_slice_constants import T_IDS_WEEKDAY, T_IDS_WEEKEND
 
 SITE_3KM = Path(__file__).resolve().parents[1] / "data" / "site_3km"
 POI_DIR = SITE_3KM / "02-POI&AOI" / "1-POI" / "25.05" / "CSV" / "分类" / "按类别"
 OUT_JSON = SITE_3KM / "poi_temporal_synthesis.json"
 OUT_CSV = SITE_3KM / "03_time_slices.csv"
 
-T_IDS = ("WD_AM", "WD_PM", "WD_EVE", "WE_PM")
-T_NAMES = (
+QUAL_LABELS = (
     "第一时段（晨—午前）",
     "第二时段（午间）",
     "第三时段（午后—傍晚）",
     "第四时段（晚间）",
 )
+WD_NAMES = tuple(f"工作日·{QUAL_LABELS[i]}" for i in range(4))
+WE_NAMES = tuple(f"周末·{QUAL_LABELS[i]}" for i in range(4))
 PERIODS = ("slice_q1", "slice_q2", "slice_q3", "slice_q4")
 
 
@@ -210,26 +217,32 @@ def main() -> None:
     avg = normalize_full_day([(wd[h] + we[h]) / 2.0 for h in range(24)])
 
     h0, h1 = 6, 23
-    cuts = equal_mass_cuts(avg, h0, h1, 4)
-    if len(cuts) != 5:
-        cuts = [h0, h0 + 4, h0 + 9, h0 + 15, h1]
+    cuts_wd = equal_mass_cuts(wd, h0, h1, 4)
+    cuts_we = equal_mass_cuts(we, h0, h1, 4)
+    if len(cuts_wd) != 5:
+        cuts_wd = [h0, h0 + 4, h0 + 9, h0 + 15, h1]
+    if len(cuts_we) != 5:
+        cuts_we = [h0, h0 + 4, h0 + 9, h0 + 15, h1]
 
-    slices = [(cuts[i], cuts[i + 1]) for i in range(4)]
+    slices_wd = [(cuts_wd[i], cuts_wd[i + 1]) for i in range(4)]
+    slices_we = [(cuts_we[i], cuts_we[i + 1]) for i in range(4)]
 
-    mw = [mass_frac_interval(wd, a, b) for a, b in slices]
-    mwe = [mass_frac_interval(we, a, b) for a, b in slices]
+    mw = [mass_frac_interval(wd, a, b) for a, b in slices_wd]
+    mwe = [mass_frac_interval(we, a, b) for a, b in slices_we]
 
     flow_wd: dict[str, dict[str, float]] = {}
     flow_we: dict[str, dict[str, float]] = {}
     rev_w = list(reversed(mw))
     rev_e = list(reversed(mwe))
-    for i, tid in enumerate(T_IDS):
-        a, b = slices[i]
+    for i, tid in enumerate(T_IDS_WEEKDAY):
+        a, b = slices_wd[i]
         flow_wd[tid] = {
             "curve_mass_share": round(mw[i], 4),
             "period_inflow_weight": rel_to_mean(mw, i),
             "period_outflow_weight": rel_to_mean(rev_w, i),
         }
+    for i, tid in enumerate(T_IDS_WEEKEND):
+        a, b = slices_we[i]
         flow_we[tid] = {
             "curve_mass_share": round(mwe[i], 4),
             "period_inflow_weight": rel_to_mean(mwe, i),
@@ -244,22 +257,32 @@ def main() -> None:
             "diurnal": "Per-category POI counts × role-specific 24h prior weights (sum-normalized).",
             "weekend_adjustment": "Retail/food/leisure up; office down; transit slightly down (for weekend curve only).",
             "partition": (
-                f"Same four clock windows for weekday and weekend: equal cumulative mass quarters "
-                f"on [{h0},{h1}) using curve_avg(h)=normalize((wd(h)+we(h))/2)."
+                f"Independent four clock windows for weekday (wd) and weekend (we): equal cumulative mass quarters "
+                f"on [{h0},{h1}) **separately** on wd(h) and we(h). curve_avg(h) retained for diagnostics only."
             ),
             "t_id_note": (
-                "WD_AM/WD_PM/WD_EVE/WE_PM are legacy ids mapped to quality-quarters Q1–Q4; "
-                "WE_PM no longer means 'weekend afternoon only'—it is the fourth shared clock slice."
+                "Weekday ids: WD_AM/WD_PM/WD_EVE/WD_NT map to Q1–Q4 on the weekday curve; "
+                "weekend ids: WE_AM/WE_MD/WE_EVE/WE_NT map to Q1–Q4 on the weekend curve. "
+                "Clock boundaries may differ between day types."
             ),
         },
         "curves": {"weekday": wd, "weekend": we, "partition_avg": avg},
-        "partition_cuts_hour": cuts,
-        "slices": [
+        "partition_cuts_hour_weekday": cuts_wd,
+        "partition_cuts_hour_weekend": cuts_we,
+        "slices_weekday": [
             {
-                "t_id": T_IDS[i],
-                "hour_range_inclusive_start": slices[i][0],
-                "hour_range_exclusive_end": slices[i][1],
+                "t_id": T_IDS_WEEKDAY[i],
+                "hour_range_inclusive_start": slices_wd[i][0],
+                "hour_range_exclusive_end": slices_wd[i][1],
                 "mass_share_weekday_in_slice": round(mw[i], 4),
+            }
+            for i in range(4)
+        ],
+        "slices_weekend": [
+            {
+                "t_id": T_IDS_WEEKEND[i],
+                "hour_range_inclusive_start": slices_we[i][0],
+                "hour_range_exclusive_end": slices_we[i][1],
                 "mass_share_weekend_in_slice": round(mwe[i], 4),
             }
             for i in range(4)
@@ -278,12 +301,26 @@ def main() -> None:
 
     rows = []
     for i in range(4):
-        a, b = slices[i]
+        a, b = slices_wd[i]
         rows.append(
             {
-                "t_id": T_IDS[i],
-                "t_name": T_NAMES[i],
-                "day_type": "weekday_and_weekend",
+                "t_id": T_IDS_WEEKDAY[i],
+                "t_name": WD_NAMES[i],
+                "day_type": "weekday",
+                "period": PERIODS[i],
+                "start_local": format_hr(float(a)),
+                "end_local": format_hr(float(b)),
+                "hour_range_inclusive_start": a,
+                "hour_range_exclusive_end": b,
+            }
+        )
+    for i in range(4):
+        a, b = slices_we[i]
+        rows.append(
+            {
+                "t_id": T_IDS_WEEKEND[i],
+                "t_name": WE_NAMES[i],
+                "day_type": "weekend",
                 "period": PERIODS[i],
                 "start_local": format_hr(float(a)),
                 "end_local": format_hr(float(b)),
@@ -311,7 +348,8 @@ def main() -> None:
 
     print("Wrote", OUT_JSON)
     print("Wrote", OUT_CSV)
-    print("cuts", cuts, "slices", slices)
+    print("cuts_weekday", cuts_wd, "slices_wd", slices_wd)
+    print("cuts_weekend", cuts_we, "slices_we", slices_we)
 
 
 if __name__ == "__main__":

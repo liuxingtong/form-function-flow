@@ -1,6 +1,9 @@
 """
 根据已有 mob_state.csv + mob_state_labels.json 统一生成「第三人」运行压力层图纸，
-与功能层（analysis.py）对齐：聚类呈现、四时段分布、转移矩阵、雷达、序列、识别、指数图。
+与功能层（analysis.py）对齐：聚类呈现、八时段分布、转移矩阵、雷达、序列、识别、指数图、**概率复杂度（R10）**与**逐步转移频次（R11）**。
+
+对外编号：`mob_state` 列为 **R1…Rk**；图纸与 transition_matrix 轴标签与此一致。
+语义摘要写入 `mob_state_labels.json` 各分量的 `zh_name`（及 `code`），供规则匹配与人工阅读。
 
 输出目录默认：output/flow/output_mobility_state/
 """
@@ -18,6 +21,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import cm, colors, font_manager
 from matplotlib.colors import ListedColormap
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 from sklearn.decomposition import PCA
@@ -25,15 +29,29 @@ from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-REPO = Path(__file__).resolve().parents[1]
-DEFAULT_OUT = REPO / "output" / "flow" / "output_mobility_state"
-DEFAULT_UNITS = REPO / "output" / "function" / "数据包" / "01_units.gpkg"
-T_IDS = ("WD_AM", "WD_PM", "WD_EVE", "WE_PM")
-
 _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 from site_map_overlay import load_site_gdf, plot_site_boundary, resolve_site_json_path  # noqa: E402
+from time_slice_constants import DEFAULT_ANCHOR_TID, T_ADJ_PAIRS, T_IDS  # noqa: E402
+
+REPO = Path(__file__).resolve().parents[1]
+DEFAULT_OUT = REPO / "output" / "flow" / "output_mobility_state"
+DEFAULT_UNITS = REPO / "output" / "function" / "数据包" / "01_units.gpkg"
+
+MOB_RADAR_KEYS_FULL = [
+    "road_centrality",
+    "accessibility_index",
+    "station_attraction",
+    "transit_facility_density",
+    "barrier_index",
+    "bottleneck_index",
+    "traffic_intensity",
+    "congestion_proxy",
+    "flow_in_proxy",
+    "flow_out_proxy",
+    "stay_proxy",
+]
 
 MOB_NUM_COLS = [
     "road_centrality",
@@ -45,6 +63,56 @@ MOB_NUM_COLS = [
     "bottleneck_index",
     "stay_proxy",
 ]
+
+MOB_TOP5_MAP_ANCHOR_TID = DEFAULT_ANCHOR_TID
+
+# 文档/站城分析默认参考点：上海火车站（与 build_site_units_and_edges 一致，WGS84）
+DEFAULT_STATION_LON = 121.451257271
+DEFAULT_STATION_LAT = 31.249149419
+
+
+def mob_state_codes(k: int) -> tuple[str, ...]:
+    """运行层对外统一编号 R1…Rk（与硬标签 1…k / id0 0…k−1 对齐）。"""
+    kk = int(k)
+    return tuple(f"R{i + 1}" for i in range(kk))
+
+
+def mob_state_id0_from_value(
+    val: object,
+    *,
+    semantic_labels: tuple[str, ...] | None = None,
+) -> int:
+    """解析 mob_state 列为 0..k−1：接受 R1/R01、1…k 整数，或（可选）与 semantic_labels 精确匹配的语义字符串。"""
+    if val is None or (isinstance(val, float) and np.isnan(val)):
+        return -1
+    s = str(val).strip()
+    if not s:
+        return -1
+    up = s.upper()
+    if up.startswith("R"):
+        tail = up[1:].lstrip("0") or "0"
+        if tail.isdigit():
+            return int(tail) - 1
+    try:
+        return int(float(s)) - 1
+    except ValueError:
+        pass
+    if semantic_labels is not None:
+        for j, lab in enumerate(semantic_labels):
+            if str(lab).strip() == s:
+                return j
+    return -1
+
+
+def mob_state_series_to_id0(
+    s: pd.Series,
+    *,
+    semantic_labels: tuple[str, ...] | None = None,
+) -> pd.Series:
+    if semantic_labels is None:
+        return s.map(lambda v: mob_state_id0_from_value(v)).astype(int)
+    sem = semantic_labels
+    return s.map(lambda v: mob_state_id0_from_value(v, semantic_labels=sem)).astype(int)
 
 
 def configure_matplotlib_chinese_font() -> None:
@@ -126,7 +194,7 @@ def transition_matrix_from_csv(df: pd.DataFrame, k: int) -> np.ndarray:
     M = np.zeros((k, k), dtype=np.int64)
     for _, grp in df.groupby("unit_id", sort=False):
         g = grp.sort_values("t_id", key=lambda s: s.map(lambda x: order_map[str(x)]))
-        labs = (g["mob_state"].astype(int).to_numpy() - 1).tolist()
+        labs = mob_state_series_to_id0(g["mob_state"]).to_numpy().tolist()
         for i in range(len(T_IDS) - 1):
             a, b = labs[i], labs[i + 1]
             if 0 <= a < k and 0 <= b < k:
@@ -152,7 +220,7 @@ def plot_cluster_pca(df: pd.DataFrame, labels_0: np.ndarray, state_names: tuple[
             s=5,
             alpha=0.25,
             color=cmap(j),
-            label=f"R{j + 1} {state_names[j]}",
+            label=f"R{j + 1}",
             rasterized=True,
         )
     var = pca.explained_variance_ratio_
@@ -161,7 +229,7 @@ def plot_cluster_pca(df: pd.DataFrame, labels_0: np.ndarray, state_names: tuple[
     ax0.set_title("运行压力 GMM 聚类结果（PCA，unit×时段）")
     ax0.legend(loc="best", fontsize=6, ncol=2, framealpha=0.92)
     counts = np.bincount(labels_0, minlength=k)
-    ylabs = [f"R{i + 1} {state_names[i]}" for i in range(k)]
+    ylabs = [f"R{i + 1}" for i in range(k)]
     ax1.barh(ylabs, counts[:k], color=[cmap(i) for i in range(k)], edgecolor="#333", linewidth=0.4)
     ax1.set_xlabel("样本数")
     ax1.set_title("各运行状态样本量")
@@ -171,8 +239,8 @@ def plot_cluster_pca(df: pd.DataFrame, labels_0: np.ndarray, state_names: tuple[
 
 
 def _mob_state_to_id0_series(df: pd.DataFrame) -> pd.Series:
-    """mob_state 转为 0..k-1；支持已从概率列重建的整数标签。"""
-    return pd.to_numeric(df["mob_state"], errors="coerce").astype(int) - 1
+    """mob_state 转为 0..k-1；支持 R* 代码或 1…k 整数（及概率列重建后的整数）。"""
+    return mob_state_series_to_id0(df["mob_state"])
 
 
 def _pick_r01_vary_indices(
@@ -185,7 +253,7 @@ def _pick_r01_vary_indices(
 ) -> np.ndarray:
     """
     抽取本时段「展示真实识别状态」的单元索引：优先选 mat[,ti]≠consensus 的地块（视觉上必有差异），
-    不足再补齐随机单元。exclude 用于从候选池中剔除（例如避免 WD_AM 与 WE_PM 两块图共用同一批变动地块）。
+    不足再补齐随机单元。exclude 用于从候选池中剔除（例如避免 WD_AM 与 WE_NT 两块图共用同一批变动地块）。
     """
     n = consensus.shape[0]
     base = np.arange(n, dtype=int)
@@ -211,9 +279,9 @@ def build_r01_blended_mob_id0(
     seed: int,
 ) -> pd.DataFrame:
     """
-    R01 专用：约 stable_frac 单元四时段均显示众数共识状态；
+    R01 专用：约 stable_frac 单元八时段均显示众数共识状态；
     约 (1-stable_frac) 单元在该子图显示该时段真实识别状态。
-    抽样优先「该时段≠共识」单元；WD_AM 与 WE_PM 的变动地块互斥，减轻晨型与晚间图过于相似。
+    抽样优先「该时段≠共识」单元；WD_AM 与 WE_NT 的变动地块互斥，减轻工作日早间与周末深夜两块图过于相似。
     """
     if not (0.0 < stable_frac < 1.0):
         raise ValueError("stable_frac must be in (0, 1)")
@@ -244,8 +312,8 @@ def build_r01_blended_mob_id0(
     for ti, tid in enumerate(T_IDS):
         rng = np.random.default_rng(seed + ti * 1_000_003)
         exclude: np.ndarray | None = None
-        # 左上 WD_AM 与 右下 WE_PM：变动集合强制不交叠，增强两图差异
-        if ti == 3 and idx_vary_am is not None and len(idx_vary_am) > 0:
+        # 左上 WD_AM 与末段 WE_NT：变动集合强制不交叠，增强两图差异
+        if ti == len(T_IDS) - 1 and idx_vary_am is not None and len(idx_vary_am) > 0:
             exclude = idx_vary_am
         if n_vary <= 0:
             idx_vary = np.array([], dtype=int)
@@ -280,7 +348,7 @@ def plot_four_maps(
     else:
         sub = df.copy()
         sub["mob_id0"] = _mob_state_to_id0_series(sub)
-    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
+    fig, axes = plt.subplots(4, 2, figsize=(14, 22))
     cmap = ListedColormap(cm.tab10.colors[:k])
     norm = colors.BoundaryNorm(np.arange(-0.5, k + 0.5, 1), cmap.N)
     for ax, tid in zip(axes.ravel(), T_IDS):
@@ -290,7 +358,7 @@ def plot_four_maps(
         plot_site_boundary(ax, u.crs, site_path)
         ax.set_title(tid)
         ax.axis("off")
-    labs = [f"R{i + 1} {state_names[i]}" for i in range(k)]
+    labs = [f"R{i + 1}" for i in range(k)]
     patches = [Patch(facecolor=cmap(i), edgecolor="#333", linewidth=0.6, label=labs[i]) for i in range(k)]
     leg_handles: list = list(patches)
     leg_labels = list(labs)
@@ -310,14 +378,14 @@ def plot_four_maps(
     )
     if blend_consensus:
         fig.suptitle(
-            "四时段运行压力状态分布图\n"
-            "（约 {:.0%} 单元四时段同显共识；约 {:.0%} 优先展示「该时段≠共识」；"
-            "WD_AM 与 WE_PM 变动地块互不重叠）".format(stable_frac, 1.0 - stable_frac),
+            "八时段运行压力状态分布图\n"
+            "（约 {:.0%} 单元八时段同显共识；约 {:.0%} 优先展示「该时段≠共识」；"
+            "WD_AM 与 WE_NT 变动地块互不重叠）".format(stable_frac, 1.0 - stable_frac),
             fontsize=11,
         )
         fig.tight_layout(rect=[0, 0.1, 1, 0.91])
     else:
-        fig.suptitle("四时段运行压力状态分布图", fontsize=14)
+        fig.suptitle("八时段运行压力状态分布图", fontsize=14)
         fig.tight_layout(rect=[0, 0.1, 1, 0.95])
     fig.savefig(path, dpi=150)
     plt.close(fig)
@@ -331,7 +399,7 @@ def plot_transition_matrix(M: np.ndarray, state_names: tuple[str, ...], path: Pa
     im = ax.imshow(P, cmap="YlGnBu", aspect="auto", vmin=0, vmax=1)
     ax.set_xticks(range(k))
     ax.set_yticks(range(k))
-    labs = [f"R{i + 1} {state_names[i]}" for i in range(k)]
+    labs = [f"R{i + 1}" for i in range(k)]
     ax.set_xticklabels(labs, rotation=45, ha="right", rotation_mode="anchor", fontsize=9)
     ax.set_yticklabels(labs, fontsize=9)
     ax.set_xlabel("转入状态")
@@ -357,8 +425,8 @@ def transition_matrix_segment(df: pd.DataFrame, k: int, t_from: str, t_to: str) 
         g = grp.set_index("t_id")
         if t_from not in g.index or t_to not in g.index:
             continue
-        a = int(pd.to_numeric(g.loc[t_from, "mob_state"], errors="raise")) - 1
-        b = int(pd.to_numeric(g.loc[t_to, "mob_state"], errors="raise")) - 1
+        a = mob_state_id0_from_value(g.loc[t_from, "mob_state"])
+        b = mob_state_id0_from_value(g.loc[t_to, "mob_state"])
         if 0 <= a < k and 0 <= b < k:
             M[a, b] += 1
     return M
@@ -395,8 +463,9 @@ def plot_slot_state_mix(df: pd.DataFrame, k: int, state_names: tuple[str, ...], 
     order_map = {t: i for i, t in enumerate(T_IDS)}
     rows = []
     for t in T_IDS:
-        sub = df.loc[df["t_id"] == t, "mob_state"].astype(int) - 1
-        cnt = np.bincount(sub.clip(min=0, max=k - 1), minlength=k).astype(float)
+        sub = mob_state_series_to_id0(df.loc[df["t_id"] == t, "mob_state"])
+        vals = sub.clip(lower=0, upper=k - 1).to_numpy(dtype=int)
+        cnt = np.bincount(vals, minlength=k).astype(float)
         s = cnt.sum()
         if s > 0:
             cnt /= s
@@ -409,7 +478,7 @@ def plot_slot_state_mix(df: pd.DataFrame, k: int, state_names: tuple[str, ...], 
     ax.set_xticklabels(list(T_IDS))
     ax.set_ylim(0.0, 1.0)
     ax.set_ylabel("占比")
-    ax.set_title("四时段运行状态构成（硬标签占比）")
+    ax.set_title("八时段运行状态构成（硬标签占比）")
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=7, ncol=1)
     ax.grid(True, axis="y", linestyle=":", alpha=0.45)
     fig.tight_layout()
@@ -417,45 +486,132 @@ def plot_slot_state_mix(df: pd.DataFrame, k: int, state_names: tuple[str, ...], 
     plt.close(fig)
 
 
-def plot_radar_from_json(comps: list[dict], state_names: tuple[str, ...], path: Path) -> None:
-    keys_full = [
-        "road_centrality",
-        "accessibility_index",
-        "station_attraction",
-        "transit_facility_density",
-        "barrier_index",
-        "bottleneck_index",
-        "traffic_intensity",
-        "congestion_proxy",
-        "flow_in_proxy",
-        "flow_out_proxy",
-        "stay_proxy",
-    ]
+def _entropy_probs_row(vec: np.ndarray, eps: float = 1e-15) -> float:
+    p = np.asarray(vec, dtype=float).ravel()
+    p = np.clip(p, eps, 1.0)
+    s = float(p.sum())
+    if s <= 1e-15:
+        return 0.0
+    p = p / s
+    h = -float(np.sum(p * np.log(p + eps)))
+    hm = float(np.log(len(p)))
+    return h / hm if hm > 1e-15 else 0.0
+
+
+def plot_flow_entropy_four_maps(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    prob_cols_r: list[str],
+    path: Path,
+    site_path: Path | None = None,
+) -> None:
+    """八时段 p_R 分布的归一化香农熵。"""
+    u = units.copy()
+    fig, axes = plt.subplots(4, 2, figsize=(14, 22))
+    axes = axes.ravel()
+    for ax, tid in zip(axes, T_IDS):
+        sub = df[df["t_id"] == tid][["unit_id"] + prob_cols_r].copy()
+        mat = sub[prob_cols_r].to_numpy(dtype=float)
+        H = np.array([_entropy_probs_row(mat[i]) for i in range(len(sub))])
+        sub["_H"] = H
+        mg = u.merge(sub[["unit_id", "_H"]], on="unit_id", how="left")
+        mg.plot(
+            column="_H",
+            ax=ax,
+            cmap="magma",
+            vmin=0.0,
+            vmax=1.0,
+            legend=True,
+            linewidth=0.08,
+            edgecolor="k",
+            legend_kwds={"shrink": 0.55, "label": "归一化熵"},
+            missing_kwds={"color": "#e8e8e8"},
+        )
+        plot_site_boundary(ax, u.crs, site_path)
+        ax.set_title(tid)
+        ax.axis("off")
+    fig.suptitle("八时段运行层复杂度（p_R 归一化香农熵）", fontsize=14)
+    fig.tight_layout(rect=[0, 0.03, 1, 0.94])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_flow_transition_frequency_bars(df: pd.DataFrame, path: Path) -> None:
+    """相邻时段运行状态（硬标签）转移频次。"""
+    from collections import Counter
+
+    order_map = {t: i for i, t in enumerate(T_IDS)}
+    pair_seg = tuple(f"{a}→{b}" for a, b in T_ADJ_PAIRS)
+    cnt_seg = [Counter() for _ in pair_seg]
+    for _, grp in df.groupby("unit_id", sort=False):
+        g = grp.sort_values("t_id", key=lambda s: s.map(lambda x: order_map[str(x)]))
+        states = g["mob_state"].astype(str).tolist()
+        if len(states) != len(T_IDS):
+            continue
+        for si in range(len(T_ADJ_PAIRS)):
+            cnt_seg[si][f"{states[si]}→{states[si + 1]}"] += 1
+
+    nseg = len(pair_seg)
+    ncols = 4
+    nrows = int(np.ceil(nseg / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(3.8 * ncols, 4.2 * nrows))
+    axes_arr = np.atleast_1d(axes).ravel()
+    for ax in axes_arr[nseg:]:
+        ax.axis("off")
+    for ax, seg_name, cobj in zip(axes_arr, pair_seg, cnt_seg, strict=True):
+        items = cobj.most_common(14)
+        if not items:
+            ax.text(0.5, 0.5, "无数据", ha="center", va="center", transform=ax.transAxes)
+            ax.axis("off")
+            continue
+        labs, vals = zip(*items, strict=False)
+        ax.barh(range(len(labs)), vals, color="#e76f51", edgecolor="#333", linewidth=0.35)
+        ax.set_yticks(range(len(labs)))
+        ax.set_yticklabels(labs, fontsize=8)
+        ax.invert_yaxis()
+        ax.set_xlabel("单元数")
+        ax.set_title(seg_name)
+    fig.suptitle("运行状态逐步转移频率分布（硬标签序列）", fontsize=13)
+    fig.tight_layout(rect=[0, 0.02, 1, 0.93])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _mob_radar_V_matrix(comps: list[dict], keys_full: list[str]) -> np.ndarray:
     k = len(comps)
     V = np.zeros((k, len(keys_full)))
     for i, c in enumerate(comps):
         mz = c["mean_z"]
         for j, kk in enumerate(keys_full):
             V[i, j] = float(mz.get(kk, 0.0))
-    per_idx = []
-    for i in range(k):
-        row = np.abs(V[i])
-        mx = float(np.max(row)) if row.size else 0.0
-        thr = max(1e-9, 0.08 * mx) if mx > 1e-9 else 1e-9
-        idx = np.where(row >= thr)[0]
-        if idx.size < 4:
-            idx = np.argsort(-row)[: min(4, len(keys_full))]
-            idx = np.sort(idx)
-        if idx.size > 18:
-            sel = idx[np.argsort(-row[idx])[:18]]
-            idx = np.sort(sel)
-        per_idx.append(idx)
+    return V
 
+
+def _mob_active_dims_row(V: np.ndarray, row_i: int) -> np.ndarray:
+    row = np.abs(V[row_i])
+    mx = float(np.max(row)) if row.size else 0.0
+    thr = max(1e-9, 0.08 * mx) if mx > 1e-9 else 1e-9
+    idx = np.where(row >= thr)[0]
+    if idx.size < 4:
+        idx = np.argsort(-row)[: min(4, len(row))]
+        idx = np.sort(idx)
+    if idx.size > 18:
+        sel = idx[np.argsort(-row[idx])[:18]]
+        idx = np.sort(sel)
+    return idx
+
+
+def plot_radar_from_json(comps: list[dict], state_names: tuple[str, ...], path: Path) -> None:
+    keys_full = MOB_RADAR_KEYS_FULL
+    k = len(comps)
+    V = _mob_radar_V_matrix(comps, keys_full)
     cmap = cm.tab10
     fig, axes = plt.subplots(1, k, figsize=(max(4.0 * k, 8.0), 4.8), subplot_kw=dict(polar=True), squeeze=False)
     for i in range(k):
         ax = axes[0, i]
-        idx = per_idx[i]
+        idx = _mob_active_dims_row(V, i)
         cols = [keys_full[j] for j in idx]
         Vi = V[i, idx]
         lo = Vi.min()
@@ -471,10 +627,165 @@ def plot_radar_from_json(comps: list[dict], state_names: tuple[str, ...], path: 
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels([c.replace("_", "\n")[:11] for c in cols], fontsize=6)
         ax.set_title(f"R{i + 1}", fontsize=10, pad=12)
-    fig.suptitle("运行状态原型雷达（各 R 仅保留非近似零维；组内 min–max）", fontsize=11, y=1.02)
+    fig.suptitle("运行状态原型雷达（各类分面 · 非近似零维；组内 min–max）", fontsize=11, y=1.02)
     fig.tight_layout()
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
+
+
+def plot_radar_overlay_all_from_json(comps: list[dict], state_names: tuple[str, ...], path: Path) -> None:
+    """全部运行状态类在同一雷达上叠加（全部指标维，列方向全局 min–max）。"""
+    keys_full = MOB_RADAR_KEYS_FULL
+    k = len(comps)
+    V = _mob_radar_V_matrix(comps, keys_full)
+    lo = V.min(axis=0)
+    hi = V.max(axis=0)
+    rng = np.maximum(hi - lo, 1e-9)
+    Vn = (V - lo) / rng
+    D = len(keys_full)
+    angles = np.linspace(0, 2 * np.pi, D, endpoint=False).tolist()
+    angles += angles[:1]
+    cmap = cm.tab10
+    fig, ax = plt.subplots(figsize=(10.5, 10.5), subplot_kw=dict(polar=True))
+    for i in range(k):
+        vals = Vn[i].tolist() + [Vn[i, 0]]
+        ax.plot(angles, vals, color=cmap(i % 10), linewidth=1.65, label=f"R{i + 1}")
+        ax.fill(angles, vals, color=cmap(i % 10), alpha=0.05)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels([k.replace("_", "\n")[:11] for k in keys_full], fontsize=7)
+    ax.set_title("全部运行状态原型雷达叠加（统一量纲归一）", fontsize=11, pad=18)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.38, 1.08), fontsize=8, frameon=True)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_top5_mob_radar_and_maps(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    comps: list[dict],
+    state_names: tuple[str, ...],
+    path: Path,
+    site_path: Path | None = None,
+    *,
+    anchor_tid: str = MOB_TOP5_MAP_ANCHOR_TID,
+    n_show: int = 5,
+) -> None:
+    keys_full = MOB_RADAR_KEYS_FULL
+    k = len(state_names)
+    n = min(int(n_show), k)
+    if n <= 0:
+        return
+    V = _mob_radar_V_matrix(comps, keys_full)
+    cmap = cm.tab10
+    u0 = units.copy()
+    sub_a = df.loc[df["t_id"] == anchor_tid, ["unit_id", "mob_state"]]
+
+    fig_h = max(8.0, 3.85 * n + 1.0)
+    fig = plt.figure(figsize=(14.0, fig_h))
+    gs = GridSpec(n, 2, figure=fig, width_ratios=[1.05, 1.12], wspace=0.22, hspace=0.34)
+
+    for i in range(n):
+        ax_r = fig.add_subplot(gs[i, 0], projection="polar")
+        idx = _mob_active_dims_row(V, i)
+        cols = [keys_full[j] for j in idx]
+        Vi = V[i, idx]
+        lo = Vi.min()
+        hi = Vi.max()
+        rng = max(hi - lo, 1e-9)
+        Vn = (Vi - lo) / rng
+        n_dim = len(cols)
+        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+        angles += angles[:1]
+        vals = Vn.tolist() + [Vn[0]]
+        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
+        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+        ax_r.set_xticks(angles[:-1])
+        ax_r.set_xticklabels([c.replace("_", "\n")[:11] for c in cols], fontsize=6)
+        ax_r.set_title(f"R{i + 1} · 原型雷达", fontsize=10, pad=14)
+
+        ax_m = fig.add_subplot(gs[i, 1])
+        hit_ids = sub_a.loc[mob_state_series_to_id0(sub_a["mob_state"]) == i, "unit_id"].unique()
+        u0["hit"] = u0["unit_id"].isin(hit_ids).astype(int)
+        u0[u0["hit"] == 0].plot(ax=ax_m, color="#eaeaea", edgecolor="none", linewidth=0)
+        sub_hit = u0[u0["hit"] == 1]
+        if len(sub_hit) > 0:
+            sub_hit.plot(ax=ax_m, color=cmap(i % 10), edgecolor="k", linewidth=0.12, alpha=0.92)
+        plot_site_boundary(ax_m, u0.crs, site_path)
+        ax_m.set_title(f"R{i + 1} · {anchor_tid} 时段单元分布", fontsize=9)
+        ax_m.axis("off")
+        ax_m.set_aspect("equal", adjustable="datalim")
+
+    fig.suptitle(
+        f"前五类运行压力状态：原型雷达与单元分布（雷达与 R03 分面一致；地图锚点 {anchor_tid}）",
+        fontsize=11,
+        y=1.008,
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_mob_split_top_states(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    comps: list[dict],
+    state_names: tuple[str, ...],
+    out_dir: Path,
+    site_path: Path | None = None,
+    *,
+    n_show: int = 5,
+) -> None:
+    """每种运行状态单独一页：上方原型雷达（与 R03 分面一致），下方八时段空间分布。"""
+    keys_full = MOB_RADAR_KEYS_FULL
+    k = len(state_names)
+    n = min(int(n_show), k)
+    if n <= 0:
+        return
+    V = _mob_radar_V_matrix(comps, keys_full)
+    cmap = cm.tab10
+    u0 = units.copy()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for i in range(n):
+        fig = plt.figure(figsize=(14.0, 15.6))
+        gs = GridSpec(2, 1, figure=fig, height_ratios=[0.34, 1.0], hspace=0.24)
+        ax_r = fig.add_subplot(gs[0], projection="polar")
+        idx = _mob_active_dims_row(V, i)
+        cols = [keys_full[j] for j in idx]
+        Vi = V[i, idx]
+        lo = Vi.min()
+        hi = Vi.max()
+        rng = max(hi - lo, 1e-9)
+        Vn = (Vi - lo) / rng
+        n_dim = len(cols)
+        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+        angles += angles[:1]
+        vals = Vn.tolist() + [Vn[0]]
+        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.9)
+        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+        ax_r.set_xticks(angles[:-1])
+        ax_r.set_xticklabels([c.replace("_", "\n")[:11] for c in cols], fontsize=6)
+        ax_r.set_title(f"R{i + 1} · 原型雷达（与 R03 一致）", fontsize=10, pad=14)
+
+        gs_maps = GridSpecFromSubplotSpec(4, 2, subplot_spec=gs[1], wspace=0.08, hspace=0.14)
+        for ax_idx, tid in enumerate(T_IDS):
+            ax = fig.add_subplot(gs_maps[ax_idx // 2, ax_idx % 2])
+            sub = df.loc[df["t_id"] == tid, ["unit_id", "mob_state"]]
+            mg = u0.merge(sub, on="unit_id", how="left")
+            hit = mob_state_series_to_id0(mg["mob_state"]).eq(i).fillna(False)
+            mg.loc[~hit].plot(ax=ax, color="#eaeaea", edgecolor="none", linewidth=0)
+            sh = mg.loc[hit]
+            if len(sh) > 0:
+                sh.plot(ax=ax, color=cmap(i % 10), edgecolor="k", linewidth=0.1, alpha=0.92)
+            plot_site_boundary(ax, u0.crs, site_path)
+            ax.set_title(tid, fontsize=10)
+            ax.axis("off")
+
+        code = mob_state_codes(k)[i]
+        fig.suptitle(f"{code}：原型雷达与八时段单元分布", fontsize=12, y=0.995)
+        fig.savefig(out_dir / f"R08_{code}_雷达与八时段分布.png", dpi=150, bbox_inches="tight")
+        plt.close(fig)
 
 
 def _transition_count_seq(seq: tuple[int, ...]) -> int:
@@ -507,7 +818,7 @@ def plot_typical_sequences(
     patterns: dict[tuple[int, ...], list[str]] = {}
     for uid, grp in df.groupby("unit_id"):
         g = grp.sort_values("t_id", key=lambda s: s.map(lambda x: order_map[str(x)]))
-        states_t = tuple((g["mob_state"].astype(int).to_numpy() - 1).tolist())
+        states_t = tuple(mob_state_series_to_id0(g["mob_state"]).to_numpy().tolist())
         if len(states_t) != len(T_IDS):
             continue
         patterns.setdefault(states_t, []).append(str(uid))
@@ -565,14 +876,14 @@ def plot_highlight(
     path: Path,
     site_path: Path | None = None,
 ) -> None:
-    hit = df.loc[df["mob_state"].astype(int) - 1 == state_idx0, "unit_id"].unique()
+    hit = df.loc[mob_state_series_to_id0(df["mob_state"]) == state_idx0, "unit_id"].unique()
     u = units.copy()
     u["hit"] = u["unit_id"].isin(hit).astype(int)
     fig, ax = plt.subplots(figsize=(8.2, 7.0))
     u[u["hit"] == 0].plot(ax=ax, color="#eaeaea", edgecolor="none", linewidth=0)
     u[u["hit"] == 1].plot(ax=ax, color="#d62728", edgecolor="k", linewidth=0.1)
     plot_site_boundary(ax, u.crs, site_path)
-    ax.set_title(f"R{state_idx0 + 1} {state_names[state_idx0]}（任一时段出现即标红）")
+    ax.set_title(f"R{state_idx0 + 1}（任一时段出现即标红）")
     ax.axis("off")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
@@ -585,15 +896,89 @@ def plot_centrality_barrier_maps(units: gpd.GeoDataFrame, df: pd.DataFrame, path
     fig, axes = plt.subplots(1, 2, figsize=(13.5, 6.2))
     u.plot(column="road_centrality", ax=axes[0], legend=True, cmap="viridis", linewidth=0.1, edgecolor="k")
     plot_site_boundary(axes[0], u.crs, site_path)
-    axes[0].set_title("路网中心性 proxy（四时段均值）")
+    axes[0].set_title("路网中心性 proxy（八时段均值）")
     axes[0].axis("off")
     u.plot(column="barrier_index", ax=axes[1], legend=True, cmap="magma", linewidth=0.1, edgecolor="k")
     plot_site_boundary(axes[1], u.crs, site_path)
-    axes[1].set_title("阻隔指数（四时段均值）")
+    axes[1].set_title("阻隔指数（八时段均值）")
     axes[1].axis("off")
     fig.suptitle("路网中心性与阻隔指数图", fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
+def plot_scheme1_centrality_mob_state(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    state_names: tuple[str, ...],
+    path: Path,
+    site_path: Path | None = None,
+    *,
+    anchor_tid: str = MOB_TOP5_MAP_ANCHOR_TID,
+) -> None:
+    """方案一：路网中心性（连续）与运行压力状态（锚定时段）并列对照，并标注火车站参考点。"""
+    k = len(state_names)
+    u = units.copy()
+    if u.crs is None:
+        u.set_crs(4326, inplace=True)
+
+    g_rc = df.groupby("unit_id", as_index=False)["road_centrality"].mean()
+    sub = df.loc[df["t_id"] == anchor_tid, ["unit_id", "mob_state"]].drop_duplicates("unit_id")
+    sub = sub.copy()
+    sub["mob_id0"] = mob_state_series_to_id0(sub["mob_state"])
+    u = u.merge(g_rc, on="unit_id", how="left")
+    u = u.merge(sub[["unit_id", "mob_id0"]], on="unit_id", how="left")
+
+    pt = gpd.GeoDataFrame(
+        geometry=gpd.points_from_xy([DEFAULT_STATION_LON], [DEFAULT_STATION_LAT]),
+        crs="EPSG:4326",
+    ).to_crs(u.crs)
+    st_x = float(pt.geometry.iloc[0].x)
+    st_y = float(pt.geometry.iloc[0].y)
+
+    fig, axes = plt.subplots(1, 2, figsize=(14.5, 6.8))
+    u.plot(column="road_centrality", ax=axes[0], legend=True, cmap="viridis", linewidth=0.1, edgecolor="k")
+    plot_site_boundary(axes[0], u.crs, site_path)
+    axes[0].scatter(
+        [st_x],
+        [st_y],
+        s=140,
+        c="#ffcc00",
+        edgecolors="#222",
+        linewidths=1.0,
+        zorder=30,
+        marker="*",
+        label="上海火车站（参考点）",
+    )
+    axes[0].set_title("路网中心性 proxy（八时段均值）")
+    axes[0].axis("off")
+    axes[0].legend(loc="lower right", fontsize=8, framealpha=0.92)
+
+    cmap = ListedColormap(cm.tab10.colors[:k])
+    norm = colors.BoundaryNorm(np.arange(-0.5, k + 0.5, 1), cmap.N)
+    u.plot(column="mob_id0", ax=axes[1], cmap=cmap, norm=norm, linewidth=0.1, edgecolor="k", legend=False)
+    plot_site_boundary(axes[1], u.crs, site_path)
+    axes[1].scatter([st_x], [st_y], s=140, c="#ffcc00", edgecolors="#222", linewidths=1.0, zorder=30, marker="*")
+    axes[1].set_title(f"运行压力状态（{anchor_tid}）")
+    axes[1].axis("off")
+
+    labs = [f"R{i + 1}" for i in range(k)]
+    patches = [Patch(facecolor=cmap(i), edgecolor="#333", linewidth=0.6, label=labs[i]) for i in range(k)]
+    fig.legend(
+        handles=patches,
+        labels=labs,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.01),
+        ncol=min(k, 6),
+        fontsize=8,
+        title="运行压力状态",
+        title_fontsize=9,
+        frameon=True,
+    )
+    fig.suptitle("方案一：路网中心性 × 运行压力状态（对照）", fontsize=13, y=1.02)
+    fig.tight_layout(rect=[0, 0.08, 1, 0.96])
+    fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -624,7 +1009,7 @@ def main() -> int:
     ap.add_argument(
         "--no-r01-blend",
         action="store_true",
-        help="R01 四时段图不使用 70%% 共识 + 各时段 30%% 抽样展示（恢复原始逐时段识别结果）",
+        help="R01 八时段图不使用 70%% 共识 + 各时段 30%% 抽样展示（恢复原始逐时段识别结果）",
     )
     ap.add_argument(
         "--r01-stable-frac",
@@ -658,24 +1043,33 @@ def main() -> int:
 
     k, comps = load_components_labels(labels_json)
     state_names = build_state_names(comps)
+    codes_t = mob_state_codes(k)
 
     for c in comps:
         cid = int(c["id"])
+        c["code"] = codes_t[cid - 1]
         c["zh_name"] = state_names[cid - 1]
     data_full = json.loads(labels_json.read_text(encoding="utf-8"))
     data_full["components"] = comps
+    data_full["state_codes_ordered"] = list(codes_t)
     data_full["state_names_ordered"] = list(state_names)
     labels_json.write_text(json.dumps(data_full, ensure_ascii=False, indent=2), encoding="utf-8")
 
     df = pd.read_csv(mob_csv, encoding="utf-8-sig")
     prob_cols = [f"p_R{i + 1}" for i in range(k)]
     if all(c in df.columns for c in prob_cols):
-        id0 = df[prob_cols].to_numpy().argmax(axis=1)
+        id0_arg = df[prob_cols].to_numpy().argmax(axis=1)
         df = df.copy()
-        df["mob_state"] = (id0 + 1).astype(int)
+        df["mob_state"] = [codes_t[int(i)] for i in id0_arg]
     else:
-        df["mob_state"] = pd.to_numeric(df["mob_state"], errors="raise")
-        id0 = df["mob_state"].to_numpy() - 1
+        df = df.copy()
+        id0_raw = mob_state_series_to_id0(df["mob_state"], semantic_labels=state_names).to_numpy(dtype=int)
+        if bool(((id0_raw < 0) | (id0_raw >= k)).any()):
+            print("警告: mob_state 存在无法解析或越界行，已 clip 到有效类别索引")
+        id0_c = np.clip(id0_raw, 0, k - 1)
+        df["mob_state"] = [codes_t[i] for i in id0_c]
+
+    id0 = mob_state_series_to_id0(df["mob_state"]).to_numpy(dtype=int)
 
     try:
         units = gpd.read_file(units_path, layer="units")
@@ -683,13 +1077,18 @@ def main() -> int:
         units = gpd.read_file(units_path)
 
     fig_r00 = out_dir / "R00_运行压力聚类结果呈现图.png"
-    fig_r01 = out_dir / "R01_四时段运行压力状态分布图.png"
+    fig_r01 = out_dir / "R01_八时段运行压力状态分布图.png"
     fig_r02 = out_dir / "R02_运行状态转移矩阵.png"
     fig_r03 = out_dir / "R03_运行状态原型雷达图.png"
+    fig_r03b = out_dir / "R03b_全部状态原型雷达叠加图.png"
+    fig_r08 = out_dir / "R08_前五类状态雷达与单元分布.png"
     fig_r04 = out_dir / "R04_典型单元运行状态序列图.png"
     fig_r05 = out_dir / "R05_可达低型识别图.png"
     fig_r06 = out_dir / "R06_轨道强型识别图.png"
     fig_r07 = out_dir / "R07_路网中心性与阻隔指数图.png"
+    fig_r09 = out_dir / "R09_方案一_路网中心性与运行压力对照图.png"
+    fig_r10 = out_dir / "R10_八时段运行状态概率复杂度.png"
+    fig_r11 = out_dir / "R11_运行状态逐步转移频率分布.png"
 
     print("R00 PCA …")
     plot_cluster_pca(df, id0, state_names, fig_r00)
@@ -710,13 +1109,22 @@ def main() -> int:
     )
     print("R02 transition …")
     plot_transition_matrix(M, state_names, fig_r02)
-    seg_pairs = [("WD_AM", "WD_PM"), ("WD_PM", "WD_EVE"), ("WD_EVE", "WE_PM")]
+    seg_pairs = list(T_ADJ_PAIRS)
     Ms = [transition_matrix_segment(df, k, a, b) for a, b in seg_pairs]
     titles = [f"{a}→{b}" for a, b in seg_pairs]
     plot_transition_segments(Ms, titles, state_names, out_dir / "R02b_分段转移热力组图.png")
-    plot_slot_state_mix(df, k, state_names, out_dir / "R02c_四时段状态构成堆叠图.png")
+    plot_slot_state_mix(df, k, state_names, out_dir / "R02c_八时段状态构成堆叠图.png")
+    if all(c in df.columns for c in prob_cols):
+        print("R10 entropy …")
+        plot_flow_entropy_four_maps(units, df, prob_cols, fig_r10, site_path=site_json)
+    else:
+        print("跳过 R10：CSV 缺少 p_R 概率列")
+    plot_flow_transition_frequency_bars(df, fig_r11)
     print("R03 radar …")
     plot_radar_from_json(comps, state_names, fig_r03)
+    plot_radar_overlay_all_from_json(comps, state_names, fig_r03b)
+    plot_top5_mob_radar_and_maps(units, df, comps, state_names, fig_r08, site_path=site_json)
+    plot_mob_split_top_states(units, df, comps, state_names, out_dir, site_path=site_json)
     print("R04 sequences …")
     plot_typical_sequences(df, state_names, fig_r04, n_units=max(1, int(ns.r04_n_units)))
 
@@ -725,13 +1133,12 @@ def main() -> int:
     plot_highlight(units, df, idx_bn, state_names, fig_r05, site_path=site_json)
     plot_highlight(units, df, idx_hub, state_names, fig_r06, site_path=site_json)
     plot_centrality_barrier_maps(units, df, fig_r07, site_path=site_json)
+    print("R09 scheme1 centrality × mob_state …")
+    plot_scheme1_centrality_mob_state(units, df, state_names, fig_r09, site_path=site_json)
 
-    name_by_int = {i + 1: state_names[i] for i in range(k)}
-    df_out = df.copy()
-    df_out["mob_state"] = df_out["mob_state"].map(lambda x: name_by_int[int(x)])
-    df_out.to_csv(out_dir / "mob_state.csv", index=False, encoding="utf-8-sig")
+    df.to_csv(out_dir / "mob_state.csv", index=False, encoding="utf-8-sig")
 
-    print("Done. Wrote figures R00–R07, R02b–R02c, updated mob_state.csv / mob_state_labels.json")
+    print("Done. Wrote figures R00–R11, R02b–R02c, R03b（雷达叠加）, R08 按状态拆分页, updated mob_state.csv / mob_state_labels.json")
     return 0
 
 

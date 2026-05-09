@@ -2,10 +2,7 @@
 基于已有 morph_state.csv + morph_gmm_meta.json 重绘「第一人」形态层图纸（与既有命名一致）。
 
 默认输出：
-  output/form/figures/M01_morph_state_map.png
-  output/form/figures/M02_morph_prototype_radar.png
-  output/form/figures/M03_barrier_permeability.png
-  output/form/figures/M04_morph_interpretation.png
+  output/form/figures/M01–M07 …（含前五类雷达+分布对照、全部状态雷达叠加、形态概率复杂度）
 并同步写入 output/form/output_morph/figures/（若目录存在或可创建）。
 
 用法（仓库根目录）：
@@ -28,6 +25,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import cm, colors, font_manager
 from matplotlib.colors import ListedColormap
+from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -129,6 +127,52 @@ def _radar_active_dims(
     return idx
 
 
+def plot_m07_prob_entropy_map(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    path: Path,
+    site_path: Path | None,
+) -> None:
+    """p_M 概率向量归一化香农熵（0≈确定类，1≈接近均匀），静态单元图。"""
+    pc = prob_cols(df)
+    if not pc:
+        return
+    sub = df[["unit_id"] + pc].drop_duplicates("unit_id")
+
+    def _h_row(r: pd.Series) -> float:
+        p = pd.to_numeric(r[pc], errors="coerce").to_numpy(dtype=float)
+        p = np.clip(p, 1e-15, 1.0)
+        s = float(p.sum())
+        if s <= 1e-15:
+            return 0.0
+        p = p / s
+        h = -float(np.sum(p * np.log(p)))
+        hm = float(np.log(len(p)))
+        return h / hm if hm > 1e-15 else 0.0
+
+    sub["H_norm"] = sub.apply(_h_row, axis=1)
+    mg = units.merge(sub[["unit_id", "H_norm"]], on="unit_id", how="left")
+    fig, ax = plt.subplots(figsize=(10.5, 9.0))
+    mg.plot(
+        column="H_norm",
+        ax=ax,
+        cmap="viridis",
+        vmin=0.0,
+        vmax=1.0,
+        legend=True,
+        linewidth=0.08,
+        edgecolor="k",
+        legend_kwds={"shrink": 0.55, "label": "归一化熵"},
+        missing_kwds={"color": "#e0e0e0"},
+    )
+    plot_site_boundary(ax, units.crs, site_path)
+    ax.set_title("形态层状态概率复杂度（归一化香农熵 · p_M）")
+    ax.axis("off")
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+
+
 def plot_m01_map(
     units: gpd.GeoDataFrame,
     df: pd.DataFrame,
@@ -161,7 +205,7 @@ def plot_m01_map(
         bbox_to_anchor=(0.5, 0.02),
         ncol=2,
         fontsize=8,
-        title="形态状态编号",
+        title="形态状态编号（0…K−1）",
         frameon=True,
     )
     fig.tight_layout(rect=[0, 0.08, 1, 1])
@@ -169,15 +213,18 @@ def plot_m01_map(
     plt.close(fig)
 
 
-def plot_m02_radar(df: pd.DataFrame, feature_cols: list[str], state_names: tuple[str, ...], path: Path) -> None:
-    k = len(state_names)
+def _morph_V_matrix(df: pd.DataFrame, feature_cols: list[str], k: int) -> np.ndarray:
     V = np.zeros((k, len(feature_cols)))
     for j in range(k):
         sub = df.loc[df["_morph_id0"] == j, feature_cols]
         if len(sub):
             V[j] = sub.mean(axis=0).to_numpy(dtype=float)
-        else:
-            V[j] = 0.0
+    return V
+
+
+def plot_m02_radar(df: pd.DataFrame, feature_cols: list[str], state_names: tuple[str, ...], path: Path) -> None:
+    k = len(state_names)
+    V = _morph_V_matrix(df, feature_cols, k)
     cmap = cm.tab10
     fig, axes = plt.subplots(
         1,
@@ -207,6 +254,141 @@ def plot_m02_radar(df: pd.DataFrame, feature_cols: list[str], state_names: tuple
         ax.set_title(f"形态类 {i}", fontsize=9, pad=12)
     fig.suptitle("空间可供性状态原型雷达图（每类仅展示非近似零维；组内 min–max）", fontsize=11, y=1.02)
     fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_m05_top5_radar_and_unit_maps(
+    units: gpd.GeoDataFrame,
+    df: pd.DataFrame,
+    feature_cols: list[str],
+    state_names: tuple[str, ...],
+    path: Path,
+    site_path: Path | None,
+    *,
+    n_show: int = 5,
+) -> None:
+    """前 n_show 类：左原型雷达（与 M02 相同的逐类活跃维 + 组内归一），右该类单元分布（浅灰底 + 主题色）。"""
+    k = len(state_names)
+    n = min(int(n_show), k)
+    if n <= 0:
+        return
+    V = _morph_V_matrix(df, feature_cols, k)
+    cmap = cm.tab10
+    u0 = units.copy()
+    sub_id = df[["unit_id", "_morph_id0"]].drop_duplicates("unit_id")
+
+    fig_h = max(8.0, 3.85 * n + 1.0)
+    fig = plt.figure(figsize=(14.0, fig_h))
+    gs = GridSpec(n, 2, figure=fig, width_ratios=[1.05, 1.12], wspace=0.22, hspace=0.34)
+
+    for i in range(n):
+        ax_r = fig.add_subplot(gs[i, 0], projection="polar")
+        idx = _radar_active_dims(V, i)
+        cols_i = [feature_cols[j] for j in idx]
+        Vi = V[i, idx]
+        lo = Vi.min()
+        hi = Vi.max()
+        rng = max(hi - lo, 1e-9)
+        Vn = (Vi - lo) / rng
+        n_dim = len(cols_i)
+        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+        angles += angles[:1]
+        vals = Vn.tolist() + [Vn[0]]
+        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
+        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+        short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
+        ax_r.set_xticks(angles[:-1])
+        ax_r.set_xticklabels(short_labs, fontsize=6)
+        ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
+
+        ax_m = fig.add_subplot(gs[i, 1])
+        mg = u0.merge(sub_id, on="unit_id", how="left")
+        hit = mg["_morph_id0"] == float(i)
+        mg.loc[~hit].plot(ax=ax_m, color="#eaeaea", edgecolor="none", linewidth=0)
+        m_hit = mg.loc[hit]
+        if len(m_hit) > 0:
+            m_hit.plot(ax=ax_m, color=cmap(i % 10), edgecolor="k", linewidth=0.12, alpha=0.92)
+        plot_site_boundary(ax_m, u0.crs, site_path)
+        ax_m.set_title(f"形态类 {i} · 单元分布（unit 主导类）", fontsize=10)
+        ax_m.axis("off")
+        ax_m.set_aspect("equal", adjustable="datalim")
+
+    fig.suptitle("前五类空间可供性状态：原型雷达与单元分布（同行对照）", fontsize=12, y=1.01)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # 每种形态类单独出图（雷达 + 单元分布）
+    out_dir = path.parent
+    for i in range(n):
+        fig_i = plt.figure(figsize=(14.0, 4.8))
+        gs_i = GridSpec(1, 2, figure=fig_i, width_ratios=[1.05, 1.12], wspace=0.22)
+        ax_r = fig_i.add_subplot(gs_i[0, 0], projection="polar")
+        idx = _radar_active_dims(V, i)
+        cols_i = [feature_cols[j] for j in idx]
+        Vi = V[i, idx]
+        lo = Vi.min()
+        hi = Vi.max()
+        rng = max(hi - lo, 1e-9)
+        Vn = (Vi - lo) / rng
+        n_dim = len(cols_i)
+        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+        angles += angles[:1]
+        vals = Vn.tolist() + [Vn[0]]
+        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
+        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+        short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
+        ax_r.set_xticks(angles[:-1])
+        ax_r.set_xticklabels(short_labs, fontsize=6)
+        ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
+
+        ax_m = fig_i.add_subplot(gs_i[0, 1])
+        mg = u0.merge(sub_id, on="unit_id", how="left")
+        hit = mg["_morph_id0"] == float(i)
+        mg.loc[~hit].plot(ax=ax_m, color="#eaeaea", edgecolor="none", linewidth=0)
+        m_hit = mg.loc[hit]
+        if len(m_hit) > 0:
+            m_hit.plot(ax=ax_m, color=cmap(i % 10), edgecolor="k", linewidth=0.12, alpha=0.92)
+        plot_site_boundary(ax_m, u0.crs, site_path)
+        ax_m.set_title(f"形态类 {i} · 单元分布（unit 主导类）", fontsize=10)
+        ax_m.axis("off")
+        ax_m.set_aspect("equal", adjustable="datalim")
+
+        fig_i.suptitle(f"形态类 {i}：原型雷达与单元分布", fontsize=11, y=1.02)
+        fig_i.savefig(out_dir / f"M05_形态类{i}_雷达与单元分布.png", dpi=150, bbox_inches="tight")
+        plt.close(fig_i)
+
+
+def plot_m06_all_states_radar_overlay(
+    df: pd.DataFrame,
+    feature_cols: list[str],
+    state_names: tuple[str, ...],
+    path: Path,
+) -> None:
+    """全部形态类在同一雷达坐标上叠加（全体类别列方向 min–max 归一，轴一致可比）。"""
+    k = len(state_names)
+    V = _morph_V_matrix(df, feature_cols, k)
+    F = len(feature_cols)
+    lo = V.min(axis=0)
+    hi = V.max(axis=0)
+    rng = np.maximum(hi - lo, 1e-9)
+    Vn = (V - lo) / rng
+    angles = np.linspace(0, 2 * np.pi, F, endpoint=False).tolist()
+    angles += angles[:1]
+    cmap = cm.tab10
+    fig, ax = plt.subplots(figsize=(10.5, 10.5), subplot_kw=dict(polar=True))
+    for i in range(k):
+        vals = Vn[i].tolist() + [Vn[i, 0]]
+        ax.plot(angles, vals, color=cmap(i % 10), linewidth=1.65, label=f"类 {i}")
+        ax.fill(angles, vals, color=cmap(i % 10), alpha=0.04)
+    ax.set_xticks(angles[:-1])
+    xlabs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:10]) for c in feature_cols]
+    ax.set_xticklabels(xlabs, fontsize=7)
+    ax.set_title("全部形态状态原型雷达叠加（统一量纲归一）", fontsize=11, pad=16)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.38, 1.08), fontsize=8, frameon=True)
+    fig.tight_layout()
+    path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
@@ -272,7 +454,7 @@ def default_output_dirs(extra: Path | None) -> list[Path]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="重绘形态层 M01–M04")
+    ap = argparse.ArgumentParser(description="重绘形态层 M01–M07")
     ap.add_argument("--morph", type=Path, default=DEFAULT_MORPH_CSV)
     ap.add_argument("--meta", type=Path, default=DEFAULT_META)
     ap.add_argument("--units", type=Path, default=DEFAULT_UNITS)
@@ -325,15 +507,26 @@ def main() -> int:
     else:
         site = resolve_site_json_path()
 
-    names = ("M01_morph_state_map.png", "M02_morph_prototype_radar.png", "M03_barrier_permeability.png", "M04_morph_interpretation.png")
+    names = (
+        "M01_morph_state_map.png",
+        "M02_morph_prototype_radar.png",
+        "M03_barrier_permeability.png",
+        "M04_morph_interpretation.png",
+        "M05_前五类状态雷达与单元分布.png",
+        "M06_全部状态原型雷达叠加图.png",
+        "M07_形态状态概率复杂度_香农熵.png",
+    )
     for d in out_dirs:
         print(f"Writing to {d} …")
         plot_m01_map(units, df, state_names, d / names[0], site)
         plot_m02_radar(df, feature_cols, state_names, d / names[1])
         plot_m03_barrier_perm(units, df, d / names[2], site)
         plot_m04_heatmap(df, feature_cols, state_names, d / names[3])
+        plot_m05_top5_radar_and_unit_maps(units, df, feature_cols, state_names, d / names[4], site)
+        plot_m06_all_states_radar_overlay(df, feature_cols, state_names, d / names[5])
+        plot_m07_prob_entropy_map(units, df, d / names[6], site)
 
-    print("Done. M01–M04 written.")
+    print("Done. M01–M07 written.")
     return 0
 
 

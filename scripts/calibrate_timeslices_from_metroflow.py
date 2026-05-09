@@ -1,6 +1,7 @@
 """
-Aggregate MetroFlow 10-min in/out within the site buffer to the same four clock
-slices as 03_time_slices.csv, split by workday calendar (isWorday), and optionally
+Aggregate MetroFlow 10-min in/out within the site buffer to the same clock
+slices as 03_time_slices.csv / poi_temporal_synthesis.json (weekday vs weekend
+can have different hour ranges), split by workday calendar (isWorday), and optionally
 blend empirical mass shares with poi_temporal_synthesis.json flow_proxy weights.
 
 Outputs: data/site_3km/metroflow/time_slice_calibration.json
@@ -13,6 +14,13 @@ from pathlib import Path
 
 import pandas as pd
 
+_SCRIPT_DIR = Path(__file__).resolve().parent
+import sys
+
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from time_slice_constants import T_IDS_WEEKDAY, T_IDS_WEEKEND
+
 SITE_3KM = Path(__file__).resolve().parents[1] / "data" / "site_3km"
 METRO_DIR = SITE_3KM / "metroflow"
 INOUT_PARQUET = METRO_DIR / "inout_10min_3km.parquet"
@@ -20,19 +28,45 @@ WORKDAY_CSV = METRO_DIR / "MetaData_workday_calendar.csv"
 POI_SYNTH = SITE_3KM / "poi_temporal_synthesis.json"
 OUT_JSON = METRO_DIR / "time_slice_calibration.json"
 
-T_IDS = ("WD_AM", "WD_PM", "WD_EVE", "WE_PM")
+
+def _hour_maps_from_poi_synth(synth: dict) -> tuple[dict[int, str], dict[int, str]]:
+    """Map integer hour (local) -> t_id for workday / non-workday aggregation."""
+
+    def build(section_key: str, ids: tuple[str, ...]) -> dict[int, str]:
+        rows = synth.get(section_key) or []
+        m: dict[int, str] = {}
+        for s in rows:
+            tid = str(s["t_id"])
+            if tid not in ids:
+                continue
+            a = int(s["hour_range_inclusive_start"])
+            b = int(s["hour_range_exclusive_end"])
+            for h in range(a, b):
+                m[h] = tid
+        return m
+
+    # tolerate legacy JSON that still uses combined "slices"
+    if "slices_weekday" not in synth and "slices" in synth:
+        legacy = synth["slices"]
+        flat = []
+        for s in legacy:
+            flat.append(
+                {
+                    "t_id": s["t_id"],
+                    "hour_range_inclusive_start": s["hour_range_inclusive_start"],
+                    "hour_range_exclusive_end": s["hour_range_exclusive_end"],
+                }
+            )
+        synth = {**synth, "slices_weekday": flat, "slices_weekend": flat}
+
+    wd_map = build("slices_weekday", T_IDS_WEEKDAY)
+    we_map = build("slices_weekend", T_IDS_WEEKEND)
+    return wd_map, we_map
 
 
-def hour_to_tid(h: int) -> str | None:
-    if 6 <= h < 11:
-        return "WD_AM"
-    if 11 <= h < 15:
-        return "WD_PM"
-    if 15 <= h < 18:
-        return "WD_EVE"
-    if 18 <= h < 23:
-        return "WE_PM"
-    return None
+def hour_to_tid(h: int, is_workday: int, wd_map: dict[int, str], we_map: dict[int, str]) -> str | None:
+    m = wd_map if int(is_workday) == 1 else we_map
+    return m.get(int(h))
 
 
 def rel_to_mean(masses: list[float], i: int) -> float:
@@ -43,10 +77,10 @@ def rel_to_mean(masses: list[float], i: int) -> float:
 
 
 def flow_block_from_masses(
-    mass_act: list[float], in_m: list[float], out_m: list[float]
+    mass_act: list[float], in_m: list[float], out_m: list[float], t_ids: tuple[str, ...]
 ) -> dict[str, dict[str, float]]:
     out: dict[str, dict[str, float]] = {}
-    for i, tid in enumerate(T_IDS):
+    for i, tid in enumerate(t_ids):
         out[tid] = {
             "curve_mass_share": round(mass_act[i], 4),
             "period_inflow_weight": rel_to_mean(in_m, i),
@@ -66,8 +100,8 @@ def blend_flow_proxy(
         "mix synthetic (POI curves) and MetroFlow empirical buffer totals."
     )
     blended: dict[str, dict[str, dict[str, float]]] = {"note": note, "weekday": {}, "weekend": {}}
-    for day in ("weekday", "weekend"):
-        for tid in T_IDS:
+    for day, t_ids in (("weekday", T_IDS_WEEKDAY), ("weekend", T_IDS_WEEKEND)):
+        for tid in t_ids:
             s = syn[day][tid]
             e = emp[day][tid]
             blended[day][tid] = {
@@ -108,11 +142,16 @@ def main() -> None:
     cal = cal.rename(columns={col: "is_workday"})
     cal["date"] = cal["date"].astype(int)
 
+    poi_full = json.loads(POI_SYNTH.read_text(encoding="utf-8"))
+    wd_map, we_map = _hour_maps_from_poi_synth(poi_full)
+
     df = pd.read_parquet(INOUT_PARQUET)
     df["hour"] = df["starttime"].astype(str).str.zfill(6).str[:2].astype(int)
-    df["t_id"] = df["hour"].map(hour_to_tid)
-    df = df[df["t_id"].notna()].copy()
     df = df.merge(cal[["date", "is_workday"]], on="date", how="inner")
+    df["t_id"] = [
+        hour_to_tid(int(h), int(w), wd_map, we_map) for h, w in zip(df["hour"], df["is_workday"])
+    ]
+    df = df[df["t_id"].notna()].copy()
 
     df["activity"] = df["inflow"].astype("float64") + df["outflow"].astype("float64")
 
@@ -129,27 +168,32 @@ def main() -> None:
         ro = {r["t_id"]: float(r["outflow"]) for _, r in g.iterrows()}
         return row, ri, ro, n_dates
 
-    def to_vectors(d_act: dict[str, float], d_in: dict[str, float], d_out: dict[str, float]):
-        act = [d_act.get(t, 0.0) for t in T_IDS]
-        ins = [d_in.get(t, 0.0) for t in T_IDS]
-        outs = [d_out.get(t, 0.0) for t in T_IDS]
+    def to_vectors(
+        d_act: dict[str, float],
+        d_in: dict[str, float],
+        d_out: dict[str, float],
+        t_ids: tuple[str, ...],
+    ) -> tuple[list[float], list[float], list[float]]:
+        act = [d_act.get(t, 0.0) for t in t_ids]
+        ins = [d_in.get(t, 0.0) for t in t_ids]
+        outs = [d_out.get(t, 0.0) for t in t_ids]
         s_act = sum(act)
+        n = len(t_ids)
         if s_act <= 0:
-            mass = [0.25, 0.25, 0.25, 0.25]
+            mass = [1.0 / n] * n
         else:
             mass = [x / s_act for x in act]
         return mass, ins, outs
 
     wd_act_d, wd_in_d, wd_out_d, n_wd = aggregate(1)
     we_act_d, we_in_d, we_out_d, n_we = aggregate(0)
-    mw, in_wd, out_wd = to_vectors(wd_act_d, wd_in_d, wd_out_d)
-    mwe, in_we, out_we = to_vectors(we_act_d, we_in_d, we_out_d)
+    mw, in_wd, out_wd = to_vectors(wd_act_d, wd_in_d, wd_out_d, T_IDS_WEEKDAY)
+    mwe, in_we, out_we = to_vectors(we_act_d, we_in_d, we_out_d, T_IDS_WEEKEND)
 
-    emp_wd = flow_block_from_masses(mw, in_wd, out_wd)
-    emp_we = flow_block_from_masses(mwe, in_we, out_we)
+    emp_wd = flow_block_from_masses(mw, in_wd, out_wd, T_IDS_WEEKDAY)
+    emp_we = flow_block_from_masses(mwe, in_we, out_we, T_IDS_WEEKEND)
 
-    poi = json.loads(POI_SYNTH.read_text(encoding="utf-8"))
-    syn_fp = poi["flow_proxy_period_weights"]
+    syn_fp = poi_full["flow_proxy_period_weights"]
     syn_wd = syn_fp["weekday"]
     syn_we = syn_fp["weekend"]
 
@@ -171,8 +215,8 @@ def main() -> None:
         },
         "aggregation": (
             "对缓冲区内各站 10min 行求和 inflow+outflow 为 activity；由 starttime 取整点小时，"
-            "映射到与 03_time_slices 相同的四小时窗 WD_AM[6,11)、WD_PM[11,15)、WD_EVE[15,18)、WE_PM[18,23)。"
-            "按 is_workday=1/0 分别池化所有样本日后再归一化质量占比。"
+            "按 poi_temporal_synthesis.json 中工作日/周末各自的切片边界映射 t_id；"
+            "按 is_workday=1/0 分别池化后再按四窗归一化质量占比。"
         ),
         "n_sample_dates": {"workday_calendar_1": n_wd, "workday_calendar_0": n_we},
         "empirical_flow_proxy_period_weights": {

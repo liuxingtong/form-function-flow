@@ -29,11 +29,10 @@ DEFAULT_EDGES = SITE_3KM / "02_edges.csv"
 DEFAULT_OUT_DIR = SITE_3KM / "qa"
 DEFAULT_STATION = (121.451257271, 31.249149419)
 DEFAULT_SITE_JSON = SITE_3KM / "SITE.json"
-T_IDS = ("WD_AM", "WD_PM", "WD_EVE", "WE_PM")
-
 _SCRIPT_DIR = Path(__file__).resolve().parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
+from time_slice_constants import T_IDS_WEEKDAY  # noqa: E402
 from site_map_overlay import plot_site_boundary  # noqa: E402
 
 
@@ -75,22 +74,28 @@ def plot_temporal_site_qa(out_dir: Path, units_path: Path) -> dict[str, str]:
     plt.close(fig)
     paths["temporal_wd_we_curves_png"] = str(p).replace("\\", "/")
 
-    slices = data.get("slices") or []
-    if slices:
-        tids = [s["t_id"] for s in slices]
-        mwd = [float(s["mass_share_weekday_in_slice"]) for s in slices]
-        mwe = [float(s["mass_share_weekend_in_slice"]) for s in slices]
-        x = np.arange(len(tids))
-        w = 0.36
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        ax.bar(x - w / 2, mwd, w, label="weekday mass in slice", color="#1f77b4")
-        ax.bar(x + w / 2, mwe, w, label="weekend mass in slice", color="#ff7f0e")
-        ax.set_xticks(x)
-        ax.set_xticklabels(tids)
-        ax.set_ylabel("mass share")
-        ax.set_title("Four clock slices: WD vs WE curve mass in window")
-        ax.legend()
-        ax.grid(axis="y", alpha=0.25)
+    swd = data.get("slices_weekday") or data.get("slices") or []
+    swe = data.get("slices_weekend") or data.get("slices") or []
+    if swd and swe:
+        tw = [s["t_id"] for s in swd]
+        mwd = [float(s["mass_share_weekday_in_slice"]) for s in swd]
+        mwe = [float(s["mass_share_weekend_in_slice"]) for s in swe]
+        fig, (ax0, ax1) = plt.subplots(2, 1, figsize=(9, 6.0), sharex=False)
+        x0 = np.arange(len(tw))
+        ax0.bar(x0, mwd, color="#1f77b4", edgecolor="white")
+        ax0.set_xticks(x0)
+        ax0.set_xticklabels(tw, rotation=20, ha="right")
+        ax0.set_ylabel("mass share")
+        ax0.set_title("Weekday diurnal curve: mass share per slice")
+        ax0.grid(axis="y", alpha=0.25)
+        te = [s["t_id"] for s in swe]
+        x1 = np.arange(len(te))
+        ax1.bar(x1, mwe, color="#ff7f0e", edgecolor="white")
+        ax1.set_xticks(x1)
+        ax1.set_xticklabels(te, rotation=20, ha="right")
+        ax1.set_ylabel("mass share")
+        ax1.set_title("Weekend diurnal curve: mass share per slice")
+        ax1.grid(axis="y", alpha=0.25)
         fig.tight_layout()
         p2 = out_dir / "temporal_slice_mass_wd_we.png"
         fig.savefig(p2, dpi=150)
@@ -100,12 +105,13 @@ def plot_temporal_site_qa(out_dir: Path, units_path: Path) -> dict[str, str]:
     fp = data.get("flow_proxy_period_weights", {})
     wk = fp.get("weekday") or {}
     if wk:
-        inf = [float(wk[t]["period_inflow_weight"]) for t in T_IDS if t in wk]
+        inf = [float(wk[t]["period_inflow_weight"]) for t in T_IDS_WEEKDAY if t in wk]
         if len(inf) == 4:
             fig, ax = plt.subplots(figsize=(8, 4.5))
-            ax.bar(T_IDS, inf, color="#2ca02c", edgecolor="white")
+            ax.bar(T_IDS_WEEKDAY, inf, color="#2ca02c", edgecolor="white")
             ax.set_ylabel("period_inflow_weight")
             ax.set_title("Flow proxy (weekday): inflow weight by t_id")
+            ax.set_xticklabels(T_IDS_WEEKDAY, rotation=20, ha="right")
             ax.grid(axis="y", alpha=0.25)
             fig.tight_layout()
             p3 = out_dir / "temporal_flow_inflow_weight_weekday.png"
@@ -119,8 +125,8 @@ def plot_temporal_site_qa(out_dir: Path, units_path: Path) -> dict[str, str]:
         syn_w = cal.get("synthetic_flow_proxy_period_weights_ref", {}).get("weekday", {})
         bl_w = cal.get("flow_proxy_period_weights_blended", {}).get("weekday", {})
         if isinstance(bl_w, dict) and syn_w:
-            syn_m = [float(syn_w[t]["curve_mass_share"]) for t in T_IDS if t in syn_w]
-            bl_m = [float(bl_w[t]["curve_mass_share"]) for t in T_IDS if t in bl_w]
+            syn_m = [float(syn_w[t]["curve_mass_share"]) for t in T_IDS_WEEKDAY if t in syn_w]
+            bl_m = [float(bl_w[t]["curve_mass_share"]) for t in T_IDS_WEEKDAY if t in bl_w]
             if len(syn_m) == 4 and len(bl_m) == 4:
                 x = np.arange(4)
                 w = 0.36
@@ -128,7 +134,7 @@ def plot_temporal_site_qa(out_dir: Path, units_path: Path) -> dict[str, str]:
                 ax.bar(x - w / 2, syn_m, w, label="POI synthetic", color="#7f7f7f")
                 ax.bar(x + w / 2, bl_m, w, label="blended (POI+MetroFlow)", color="#9467bd")
                 ax.set_xticks(x)
-                ax.set_xticklabels(T_IDS)
+                ax.set_xticklabels(T_IDS_WEEKDAY, rotation=20, ha="right")
                 ax.set_ylabel("curve_mass_share")
                 ax.set_title("Weekday slice mass: synthetic vs MetroFlow blend")
                 ax.legend()

@@ -38,9 +38,14 @@ REPO = Path(__file__).resolve().parents[1]
 DEFAULT_MAX_FILE_MB = 30.0
 
 # (类别显示名, glob 子串列表；命中任一即归入该类；按顺序匹配，先到先得）
+# 慢行类须包含「自行车道」等文件名：市级数据中步行专用线往往较少，骑行设施单独成层，
+# 若不匹配「自行车」则会被归入未匹配，图上会显得覆盖极差。
 MODALITY_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("轨道与站点（原始矢量）", ("地铁", "轨道", "铁路", "metroflow", "station", "站点")),
-    ("慢行与人行（原始矢量）", ("行人", "步行", "慢行", "绿道", "运动场跑道", "跑道")),
+    (
+        "慢行与人行（原始矢量）",
+        ("行人", "步行", "慢行", "绿道", "运动场跑道", "跑道", "自行车道", "自行车", "骑行", "轮渡", "渡口", "人渡口"),
+    ),
     ("快速路主干（原始矢量）", ("快速路", "高速", "主干道")),
     ("其它机动车道路（原始矢量）", ("公路", "道路", "街坊", "次级", "其它", "一级", "市区")),
 ]
@@ -73,8 +78,27 @@ def _collect_geojsons(roots: list[Path]) -> list[Path]:
     return uniq
 
 
+def _modality_match_string(path: Path) -> str:
+    """仅用仓库内相对路径匹配，避免上级目录 ``.../shanghaistation/...`` 误命中英文 ``station``。"""
+    try:
+        rel = path.resolve().relative_to(REPO.resolve())
+    except ValueError:
+        parts: list[str] = [path.stem.lower()]
+        cur = path.parent
+        for _ in range(10):
+            if cur.name:
+                parts.append(cur.name.lower())
+            parent = cur.parent
+            if parent == cur:
+                break
+            cur = parent
+        return "/".join(parts)
+    segs = [*(s.lower() for s in rel.parent.parts if s not in ("", ".")), rel.stem.lower()]
+    return "/".join(segs)
+
+
 def _assign_modality(path: Path) -> str | None:
-    s = path.as_posix().lower()
+    s = _modality_match_string(path)
     for name, keys in MODALITY_RULES:
         if any(k.lower() in s for k in keys):
             return name
