@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import geopandas as gpd
@@ -19,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
 
 REPO = Path(__file__).resolve().parents[1]
 SITE_3KM = REPO / "data" / "site_3km"
@@ -26,7 +28,13 @@ DEFAULT_UNITS = SITE_3KM / "01_units.gpkg"
 DEFAULT_EDGES = SITE_3KM / "02_edges.csv"
 DEFAULT_OUT_DIR = SITE_3KM / "qa"
 DEFAULT_STATION = (121.451257271, 31.249149419)
+DEFAULT_SITE_JSON = SITE_3KM / "SITE.json"
 T_IDS = ("WD_AM", "WD_PM", "WD_EVE", "WE_PM")
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+from site_map_overlay import plot_site_boundary  # noqa: E402
 
 
 def _edge_segments(sub: pd.DataFrame, cents_wgs84: pd.Series) -> list[list[tuple[float, float]]]:
@@ -142,6 +150,12 @@ def main() -> None:
     ap.add_argument("--station-lon", type=float, default=DEFAULT_STATION[0])
     ap.add_argument("--station-lat", type=float, default=DEFAULT_STATION[1])
     ap.add_argument(
+        "--site-json",
+        type=Path,
+        default=DEFAULT_SITE_JSON,
+        help="场地红线 GeoJSON（默认 data/SITE.json），叠在地理 QA 图上；不存在则跳过。",
+    )
+    ap.add_argument(
         "--edge-color-pct",
         type=float,
         default=98.0,
@@ -151,7 +165,10 @@ def main() -> None:
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    units = gpd.read_file(args.units, layer="units")
+    try:
+        units = gpd.read_file(args.units, layer="units")
+    except Exception:
+        units = gpd.read_file(args.units)
     edges = pd.read_csv(args.edges)
     units_idx = units.set_index("unit_id")
 
@@ -181,10 +198,15 @@ def main() -> None:
         label="station ref",
         edgecolors="white",
     )
+    site_ok = plot_site_boundary(ax, units.crs, args.site_json)
     ax.set_title("01_units: ring_zone + station")
     ax.set_xlabel("lon")
     ax.set_ylabel("lat")
-    ax.legend(loc="upper right")
+    h0, l0 = ax.get_legend_handles_labels()
+    if site_ok:
+        h0.append(Line2D([0], [0], color="#d90429", lw=2.2, linestyle=(0, (5, 3))))
+        l0.append("场地红线 (SITE.json)")
+    ax.legend(h0, l0, loc="upper right")
     ax.set_aspect("equal")
     fig.tight_layout()
     p1 = args.out_dir / "units_ring_zones.png"
@@ -219,19 +241,21 @@ def main() -> None:
         zorder=6,
         edgecolors="white",
     )
+    site_ok2 = plot_site_boundary(ax, units.crs, args.site_json)
     ax.set_xlim(units.total_bounds[0], units.total_bounds[2])
     ax.set_ylim(units.total_bounds[1], units.total_bounds[3])
     ax.set_title("02_edges: parcel_touch (gray) + proximity_bridge (blue) + knn_bridge (red)")
     ax.set_xlabel("lon")
     ax.set_ylabel("lat")
     ax.set_aspect("equal")
-    from matplotlib.lines import Line2D
-
     leg = [
         Line2D([0], [0], color="#4a4a4a", lw=2, alpha=0.6, label="parcel_touch"),
         Line2D([0], [0], color="#1f77b4", lw=2, alpha=0.7, label="proximity_bridge"),
         Line2D([0], [0], color="#c0392b", lw=2, alpha=0.9, label="knn_bridge"),
+        Line2D([0], [0], marker="*", color="w", markerfacecolor="red", markersize=12, linestyle="None", label="station ref"),
     ]
+    if site_ok2:
+        leg.append(Line2D([0], [0], color="#d90429", lw=2.2, linestyle=(0, (5, 3)), label="场地红线 (SITE.json)"))
     ax.legend(handles=leg, loc="upper right")
     fig.tight_layout()
     p2 = args.out_dir / "units_edges_touch_vs_bridge.png"
@@ -317,6 +341,7 @@ def main() -> None:
             zorder=6,
             edgecolors="white",
         )
+        site_ok_e = plot_site_boundary(ax, units.crs, args.site_json)
         ax.set_xlim(units.total_bounds[0], units.total_bounds[2])
         ax.set_ylim(units.total_bounds[1], units.total_bounds[3])
         ax.set_aspect("equal")
@@ -325,6 +350,21 @@ def main() -> None:
         ax.set_ylabel("lat")
         cbar = fig.colorbar(lc, ax=ax, shrink=0.55, label=cbar_label)
         cbar.ax.tick_params(labelsize=9)
+        lh = [
+            Line2D(
+                [0],
+                [0],
+                marker="*",
+                color="w",
+                markerfacecolor="red",
+                markersize=11,
+                linestyle="None",
+                label="station ref",
+            ),
+        ]
+        if site_ok_e:
+            lh.append(Line2D([0], [0], color="#d90429", lw=2.2, linestyle=(0, (5, 3)), label="场地红线 (SITE.json)"))
+        ax.legend(handles=lh, loc="lower right", fontsize=8, framealpha=0.92)
         fig.tight_layout()
         outp = args.out_dir / out_name
         fig.savefig(outp, dpi=170)

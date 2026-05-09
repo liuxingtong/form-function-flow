@@ -1,0 +1,25 @@
+{
+  "mode": "from_csv",
+  "units_gpkg": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\01_units.gpkg",
+  "flow_hour": "data\\sshmm\\sample_inputs\\synthetic_point_flow_hour.csv",
+  "od_o": "data\\sshmm\\sample_inputs\\synthetic_point_OD_hour_O.csv",
+  "od_d": "data\\sshmm\\sample_inputs\\synthetic_point_OD_hour_D.csv",
+  "poi_static": "data\\sshmm\\sample_inputs\\synthetic_poi_static_per_unit.csv",
+  "L": 12,
+  "poi_columns": [
+    "商业",
+    "办公",
+    "交通",
+    "居住",
+    "公服",
+    "教育",
+    "医疗",
+    "文体",
+    "其它"
+  ],
+  "stay_mode": "flow",
+  "time_start": "2021-04-01 06:00:00",
+  "time_end": "2021-04-02 05:00:00",
+  "n_rows": 240,
+  "n_units": 10
+}
