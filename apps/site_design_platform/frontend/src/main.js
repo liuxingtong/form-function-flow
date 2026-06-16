@@ -1,6 +1,6 @@
 ﻿import { DATASETS } from "./config.js";
 import { createMap } from "./map-init.js";
-import { addSourcesAndLayers, fitToSiteBoundary, refreshBuildingStackSource, setLayerVisible, setSelectedParcel } from "./layer-manager.js";
+import { addSourcesAndLayers, fitToSiteBoundary, refreshBuildingsSource, refreshBuildingStackSource, setLayerVisible, setSelectedParcel } from "./layer-manager.js";
 import { loadDatasets } from "./source-loader.js";
 import { bindInfoPopups } from "./popup-controller.js";
 import { bindLayerToggles, initEditorUI, initLegends, renderSummary, setStatus } from "./ui-controller.js";
@@ -554,6 +554,7 @@ async function main() {
           setStatus("Rhino scenario invalid");
           return false;
         }
+        refreshBuildingsSource(map, store.getFeatureCollection());
         refreshBuildingStackSource(map, { type: "FeatureCollection", features: [] });
         setLayerVisible(map, "buildings-stack-extrusion", false);
         setLayerVisible(map, "buildings-extrusion", true);
@@ -608,6 +609,7 @@ async function main() {
       editor = createEditorController(map, store, editorUI);
       if (rhinoLoaded) {
         editor.setLocked(true);
+        editor.forceRefresh();
       }
       if (cachedEconParams) {
         editorUI.setEconomicsInputs(cachedEconParams);

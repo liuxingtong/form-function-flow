@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import math
 import os
 import time
 import traceback
@@ -15,6 +14,7 @@ from apps.site_design_platform.backend.cluster_generator.generator import (
 )
 from apps.site_design_platform.backend.ai_agent.service import infer_audience_profile, infer_floor_stack
 from apps.site_design_platform.backend.ai_agent.trace_store import append_trace
+from apps.site_design_platform.backend.site_alignment import align_payload_to_site
 
 
 def run_server(root: Path, host: str, port: int) -> None:
@@ -24,78 +24,6 @@ def run_server(root: Path, host: str, port: int) -> None:
     econ_snapshot_file = rhino_dir / "economics_snapshots.jsonl"
     econ_latest_file = rhino_dir / "economics_snapshot_latest.json"
     site_file = root / "data" / "site_dxf" / "crs84" / "SITE.geojson"
-
-    def _first_ring(geojson_obj: dict) -> list[list[float]] | None:
-        if not isinstance(geojson_obj, dict):
-            return None
-        if geojson_obj.get("type") == "Polygon":
-            coords = geojson_obj.get("coordinates", [])
-            return coords[0] if coords else None
-        if geojson_obj.get("type") == "Feature":
-            return _first_ring(geojson_obj.get("geometry", {}))
-        if geojson_obj.get("type") == "FeatureCollection":
-            for f in geojson_obj.get("features", []):
-                r = _first_ring(f)
-                if r:
-                    return r
-        return None
-
-    def _centroid(ring: list[list[float]]) -> tuple[float, float]:
-        xs = [p[0] for p in ring]
-        ys = [p[1] for p in ring]
-        return (sum(xs) / max(1, len(xs)), sum(ys) / max(1, len(ys)))
-
-    def _area(ring: list[list[float]]) -> float:
-        s = 0.0
-        for i in range(len(ring) - 1):
-            x1, y1 = ring[i]
-            x2, y2 = ring[i + 1]
-            s += x1 * y2 - x2 * y1
-        return abs(s) * 0.5
-
-    def _edge_angle(ring: list[list[float]]) -> float:
-        best = 0.0
-        best_len = -1.0
-        for i in range(len(ring) - 1):
-            x1, y1 = ring[i]
-            x2, y2 = ring[i + 1]
-            dx = x2 - x1
-            dy = y2 - y1
-            l = dx * dx + dy * dy
-            if l > best_len:
-                best_len = l
-                best = math.atan2(dy, dx)
-        return best
-
-    def _transform_point(x: float, y: float, src_c: tuple[float, float], dst_c: tuple[float, float], scale: float, rot: float) -> tuple[float, float]:
-        dx = x - src_c[0]
-        dy = y - src_c[1]
-        c = math.cos(rot)
-        s = math.sin(rot)
-        rx = dx * c - dy * s
-        ry = dx * s + dy * c
-        return (dst_c[0] + rx * scale, dst_c[1] + ry * scale)
-
-    def _transform_geometry(g: dict, src_c: tuple[float, float], dst_c: tuple[float, float], scale: float, rot: float) -> dict:
-        gt = g.get("type")
-        out = {"type": gt}
-        if gt == "Polygon":
-            out["coordinates"] = [[list(_transform_point(p[0], p[1], src_c, dst_c, scale, rot)) for p in ring] for ring in g.get("coordinates", [])]
-        elif gt == "MultiPolygon":
-            out["coordinates"] = [
-                [[list(_transform_point(p[0], p[1], src_c, dst_c, scale, rot)) for p in ring] for ring in poly]
-                for poly in g.get("coordinates", [])
-            ]
-        elif gt == "LineString":
-            out["coordinates"] = [list(_transform_point(p[0], p[1], src_c, dst_c, scale, rot)) for p in g.get("coordinates", [])]
-        elif gt == "MultiLineString":
-            out["coordinates"] = [
-                [list(_transform_point(p[0], p[1], src_c, dst_c, scale, rot)) for p in ln]
-                for ln in g.get("coordinates", [])
-            ]
-        else:
-            out = g
-        return out
 
     class RootHandler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -190,49 +118,12 @@ def run_server(root: Path, host: str, port: int) -> None:
                     if not isinstance(payload, dict) or not isinstance(payload.get("blocks"), list):
                         self._send_json(400, {"error": "invalid payload: expected scenario JSON with blocks[]"})
                         return
-                    # Optional coordinate alignment: map Rhino local site outline to frontend SITE boundary.
+                    # Map Rhino local SITE outline → WGS84 SITE.geojson; affine-transform all geometries.
                     aligned = False
                     if payload.get("rhino_site_outline") and site_file.exists():
                         try:
-                            src_ring = _first_ring(payload["rhino_site_outline"])
                             site_fc = json.loads(site_file.read_text(encoding="utf-8-sig"))
-                            dst_ring = _first_ring(site_fc)
-                            if src_ring and dst_ring and len(src_ring) >= 4 and len(dst_ring) >= 4:
-                                src_c = _centroid(src_ring)
-                                dst_c = _centroid(dst_ring)
-                                src_a = max(1e-9, _area(src_ring))
-                                dst_a = max(1e-9, _area(dst_ring))
-                                scale = math.sqrt(dst_a / src_a)
-                                rot = _edge_angle(dst_ring) - _edge_angle(src_ring)
-                                for b in payload.get("blocks", []):
-                                    g = b.get("geometry")
-                                    if isinstance(g, dict):
-                                        b["geometry"] = _transform_geometry(g, src_c, dst_c, scale, rot)
-                                parcels = payload.get("rhino_parcels", {})
-                                if isinstance(parcels, dict):
-                                    for f in parcels.get("features", []):
-                                        g = f.get("geometry")
-                                        if isinstance(g, dict):
-                                            f["geometry"] = _transform_geometry(g, src_c, dst_c, scale, rot)
-                                originals = payload.get("rhino_original_buildings", {})
-                                if isinstance(originals, dict):
-                                    for f in originals.get("features", []):
-                                        g = f.get("geometry")
-                                        if isinstance(g, dict):
-                                            f["geometry"] = _transform_geometry(g, src_c, dst_c, scale, rot)
-                                walking = payload.get("rhino_walking", {})
-                                if isinstance(walking, dict):
-                                    for f in walking.get("features", []):
-                                        g = f.get("geometry")
-                                        if isinstance(g, dict):
-                                            f["geometry"] = _transform_geometry(g, src_c, dst_c, scale, rot)
-                                ground = payload.get("rhino_ground", {})
-                                if isinstance(ground, dict):
-                                    for f in ground.get("features", []):
-                                        g = f.get("geometry")
-                                        if isinstance(g, dict):
-                                            f["geometry"] = _transform_geometry(g, src_c, dst_c, scale, rot)
-                                aligned = True
+                            aligned = align_payload_to_site(payload, site_fc)
                         except Exception:
                             traceback.print_exc()
                     rhino_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

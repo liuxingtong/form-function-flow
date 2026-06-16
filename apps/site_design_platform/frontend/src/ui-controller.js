@@ -51,7 +51,9 @@ export function bindLayerToggles(map) {
   checks.forEach((cfg) => {
     const el = document.getElementById(cfg.id);
     if (!el) return;
-    el.addEventListener("change", () => cfg.layers.forEach((x) => setLayerVisible(map, x, el.checked)));
+    const apply = () => cfg.layers.forEach((x) => setLayerVisible(map, x, el.checked));
+    el.addEventListener("change", apply);
+    apply();
   });
 
   ["cbd", "tod", "ofc", "res"].forEach((k) => {

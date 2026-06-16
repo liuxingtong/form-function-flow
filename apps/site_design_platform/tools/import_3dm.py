@@ -193,7 +193,26 @@ def _layer_map(model) -> dict[int, str]:
     return {m.Index: m.Name.upper().strip() for m in model.Layers}
 
 
-def convert(model_path: Path) -> dict:
+def _ring_area_xy(ring: list[list[float]]) -> float:
+    pts = ring[:-1] if len(ring) > 1 and ring[0] == ring[-1] else ring
+    if len(pts) < 3:
+        return 0.0
+    s = 0.0
+    for i in range(len(pts)):
+        x1, y1 = pts[i]
+        x2, y2 = pts[(i + 1) % len(pts)]
+        s += x1 * y2 - x2 * y1
+    return abs(s) * 0.5
+
+
+def convert(
+    model_path: Path,
+    *,
+    skip_ground: bool = True,
+    skip_walking: bool = False,
+    include_flat: bool = False,
+    max_ground_area_ratio: float = 0.1,
+) -> dict:
     """Read .3dm and return a rhino_live.json-compatible payload dict."""
     model = rhino3dm.File3dm.Read(str(model_path))
     if model is None:
@@ -208,6 +227,10 @@ def convert(model_path: Path) -> dict:
     counts: dict[str, int] = {}
     skipped = 0
     errors = 0
+    ground_oversized = 0
+    flat_skipped = 0
+
+    site_area = 0.0
 
     for i in range(len(model.Objects)):
         obj_ref = model.Objects[i]
@@ -221,12 +244,19 @@ def convert(model_path: Path) -> dict:
                 if ring:
                     site_ring = ring
                     site_ring.append(site_ring[0])  # close
+                    site_area = _ring_area_xy(site_ring)
             continue
 
         # ── Road surfaces → rhino_ground ───────────────────────────────────
         if layer_name in GROUND_LAYERS:
+            if skip_ground:
+                skipped += 1
+                continue
             ring = _extract_ring(obj)
             if ring and len(ring) >= 4:
+                if site_area > 0 and _ring_area_xy(ring) > site_area * max_ground_area_ratio:
+                    ground_oversized += 1
+                    continue
                 ground_features.append({
                     "type": "Feature",
                     "properties": {"id": f"{layer_name}_{i}", "layer": layer_name},
@@ -238,6 +268,9 @@ def convert(model_path: Path) -> dict:
 
         # ── Pedestrian paths → rhino_walking ───────────────────────────────
         if layer_name in WALKING_LAYERS:
+            if skip_walking:
+                skipped += 1
+                continue
             ring = _extract_ring(obj)
             if ring and len(ring) >= 4:
                 walking_features.append({
@@ -260,6 +293,9 @@ def convert(model_path: Path) -> dict:
             continue
 
         height, base = _bbox_heights(obj)
+        if not include_flat and height < 0.5:
+            flat_skipped += 1
+            continue
         blocks.append({
             "id": f"{layer_name}_{i}",
             "function": layer_name,
@@ -270,6 +306,10 @@ def convert(model_path: Path) -> dict:
         counts[layer_name] = counts.get(layer_name, 0) + 1
 
     print(f"Extracted {len(blocks)} blocks  |  ground={len(ground_features)}  walking={len(walking_features)}  errors={errors}  skipped={skipped}")
+    if flat_skipped:
+        print(f"  Flat blocks skipped (height < 0.5m): {flat_skipped}")
+    if ground_oversized:
+        print(f"  Oversized ground faces skipped (>{max_ground_area_ratio:.0%} SITE): {ground_oversized}")
     print(f"  Site outline: {'found (%d pts)' % len(site_ring) if site_ring else 'NOT FOUND'}")
     for fn, cnt in sorted(counts.items()):
         print(f"    {fn}: {cnt}")
@@ -298,6 +338,12 @@ def main() -> None:
                     help="Print stats only, do not write or POST")
     ap.add_argument("--write-only", action="store_true",
                     help="Write rhino_live.json directly (skips server coordinate alignment)")
+    ap.add_argument("--include-ground", action="store_true",
+                    help="Import HIGHWAY layer as rhino_ground (off by default; mesh faces are noisy)")
+    ap.add_argument("--skip-walking", action="store_true",
+                    help="Do not import WALKWAY layer as rhino_walking")
+    ap.add_argument("--include-flat", action="store_true",
+                    help="Include zero-height flat slabs as building blocks")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8088)
     args = ap.parse_args()
@@ -307,7 +353,12 @@ def main() -> None:
         sys.exit(f"File not found: {model_path}")
 
     print(f"Reading {model_path} ...")
-    payload = convert(model_path)
+    payload = convert(
+        model_path,
+        skip_ground=not args.include_ground,
+        skip_walking=args.skip_walking,
+        include_flat=args.include_flat,
+    )
 
     if args.dry_run:
         print("Dry run — done.")
