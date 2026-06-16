@@ -335,32 +335,42 @@ function _waterfall(steps, W = 520, H = 190) {
 }
 
 /* ── Semicircle gauge ────────────────────────────────────────── */
-function _gauge(value, max, label, W = 150, H = 90) {
-  const cx = W / 2, cy = H - 14;
-  const r = Math.min(cx - 10, cy - 6);
+function _gauge(value, max, label, W = 150, H = 96) {
+  const cx = W / 2, cy = H - 16;
+  const r = Math.min(cx - 12, cy - 6);
+  const sw = 7; // arc stroke width — thinner avoids chunky wedge at low values
   const clamp = Math.max(0, Math.min(1, value / (max || 1)));
-  const ang = Math.PI - clamp * Math.PI;
+  // angle: π = left/0%, 0 = right/100%
+  const ang = Math.PI * (1 - clamp);
   const ex = cx + r * Math.cos(ang), ey = cy - r * Math.sin(ang);
   const lg = clamp > 0.5 ? 1 : 0;
   const trackD = `M${(cx - r).toFixed(1)},${cy} A${r},${r} 0 0,1 ${(cx + r).toFixed(1)},${cy}`;
-  const valD = clamp > 0.001 ? `M${(cx - r).toFixed(1)},${cy} A${r},${r} 0 ${lg},1 ${ex.toFixed(1)},${ey.toFixed(1)}` : '';
-  const nx = cx + (r - 8) * Math.cos(ang), ny = cy - (r - 8) * Math.sin(ang);
+  const valD = clamp > 0.004 ? `M${(cx - r).toFixed(1)},${cy} A${r},${r} 0 ${lg},1 ${ex.toFixed(1)},${ey.toFixed(1)}` : '';
+  // needle: full length to arc, thin dark line
+  const needleR = r - sw / 2 - 1;
+  const nx = cx + needleR * Math.cos(ang), ny = cy - needleR * Math.sin(ang);
+  // tail (short opposite direction)
+  const tailR = 10;
+  const tx2 = cx - tailR * Math.cos(ang), ty2 = cy + tailR * Math.sin(ang);
+  // tick marks at 0 25 50 75 100%
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((t) => {
-    const a = Math.PI - t * Math.PI;
-    const x1 = cx + (r - 5) * Math.cos(a), y1 = cy - (r - 5) * Math.sin(a);
-    const x2 = cx + r * Math.cos(a), y2 = cy - r * Math.sin(a);
-    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${_C.dim}" stroke-width="1"/>`;
+    const a = Math.PI * (1 - t);
+    const ro = r + 3, ri2 = r - sw - 2;
+    const x1 = cx + ri2 * Math.cos(a), y1 = cy - ri2 * Math.sin(a);
+    const x2 = cx + ro * Math.cos(a), y2 = cy - ro * Math.sin(a);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(0,0,0,.18)" stroke-width="1.2"/>`;
   }).join('');
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-    <path d="${trackD}" fill="none" stroke="${_C.track}" stroke-width="9" stroke-linecap="round"/>
-    ${valD ? `<path d="${valD}" fill="none" stroke="${_C.gold}" stroke-width="9" stroke-linecap="round" opacity=".9"/>` : ''}
+    <path d="${trackD}" fill="none" stroke="${_C.track}" stroke-width="${sw}" stroke-linecap="round"/>
+    ${valD ? `<path d="${valD}" fill="none" stroke="${_C.gold}" stroke-width="${sw}" stroke-linecap="round"/>` : ''}
     ${ticks}
-    <line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="${_C.gold}" stroke-width="1.8" stroke-linecap="round"/>
-    <circle cx="${cx}" cy="${cy}" r="3" fill="${_C.gold}"/>
-    ${_tx(cx, cy - r * 0.32, (value * 100).toFixed(1) + '%', { size: 15, w: '700' })}
-    ${_tx(cx, cy - 7, label, { size: 8.5, fill: _C.mid })}
-    ${_tx(cx - r + 2, cy + 11, '0', { size: 7.5, fill: _C.dim })}
-    ${_tx(cx + r - 2, cy + 11, (max * 100).toFixed(0) + '%', { size: 7.5, fill: _C.dim })}
+    <line x1="${tx2.toFixed(1)}" y1="${ty2.toFixed(1)}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="rgba(20,20,20,.75)" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="5" fill="${_C.gold}"/>
+    <circle cx="${cx}" cy="${cy}" r="2.5" fill="white"/>
+    ${_tx(cx, cy - r * 0.38, (value * 100).toFixed(1) + '%', { size: 15, w: '700' })}
+    ${_tx(cx, cy - 6, label, { size: 8, fill: _C.mid })}
+    ${_tx(cx - r - 1, cy + 12, '0', { size: 7, fill: _C.dim })}
+    ${_tx(cx + r + 1, cy + 12, (max * 100).toFixed(0) + '%', { size: 7, fill: _C.dim, a: 'end' })}
   </svg>`;
 }
 
