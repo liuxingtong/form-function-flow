@@ -86,3 +86,10 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# --- Large local archives (exceed GitHub 100MB limit) ---
+data/site_3km.zip
+data/site_3km/02-POI&AOI/大众点评/dianping_points_wgs84.geojson
+_deprecated/output/synthetic/synthetic_flow_worldpop/synthetic_edge_flow_period_long.csv
+cache/
+data/site_design_platform/logs/

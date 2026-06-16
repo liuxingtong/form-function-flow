@@ -1,0 +1,43 @@
+{
+  "n_units": 4213,
+  "gmm_n_components": 7,
+  "gmm_covariance_type": "full",
+  "feature_names": [
+    "building_coverage",
+    "building_density",
+    "avg_height",
+    "max_height",
+    "volume_intensity",
+    "block_compactness",
+    "building_fragmentation",
+    "road_density",
+    "intersection_density",
+    "green_blue_ratio",
+    "dem_mean",
+    "dem_slope",
+    "heritage_ratio",
+    "landuse_mix",
+    "edge_conductance_mean",
+    "edge_conductance_std",
+    "barrier_index",
+    "permeability_index"
+  ],
+  "component_order_map": {
+    "2": 0,
+    "1": 1,
+    "4": 2,
+    "6": 3,
+    "5": 4,
+    "3": 5,
+    "0": 6
+  },
+  "state_labels_zh": [
+    "风貌占比高·覆盖中高·渗透偏高",
+    "渗透高·连通高·阻隔中高",
+    "建成主体·路网稀·风貌无",
+    "路网密·覆盖中高·风貌低",
+    "覆盖低·建筑高·阻隔高",
+    "蓝绿高·路网密·覆盖低",
+    "无建筑·阻隔高·连通低"
+  ]
+}

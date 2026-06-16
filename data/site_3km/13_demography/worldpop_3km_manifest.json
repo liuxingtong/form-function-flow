@@ -1,0 +1,16 @@
+{
+  "source": "F:\\Aworks\\2026studio\\shanghaistation\\all\\15-Worldpop人口密度\\上海市_chn_ppp_2020_UNadj.tif",
+  "output_tif": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\worldpop_3km.tif",
+  "buffer_geojson": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\SITE_buffer_3km.geojson",
+  "buffer_m": 3000.0,
+  "src_crs": "EPSG:4326",
+  "src_nodata": 0.0,
+  "raster_interpretation": "WorldPop chn_ppp_* values are treated as persons per pixel; sums are population estimates.",
+  "clipped_shape": [
+    73,
+    92
+  ],
+  "clipped_positive_pixel_count": 5171,
+  "clipped_population_sum": 2113588.0,
+  "clipped_pixel_mean_positive": 408.7387390136719
+}

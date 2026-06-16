@@ -1,0 +1,37 @@
+{
+  "out_dir": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\metric_maps_osm_svm",
+  "n_units_in_buffer": 3188,
+  "buffer_m": 3000.0,
+  "metrics": {
+    "avg_rating": {
+      "png": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\metric_maps_osm_svm\\Func01_avg_rating_OSMSVM.png",
+      "written": true,
+      "median": 3.5,
+      "p02_p98": [
+        0.0,
+        30.0
+      ],
+      "n_valid": 3188
+    },
+    "poi_density": {
+      "png": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\metric_maps_osm_svm\\Func02_poi_density_OSMSVM.png",
+      "written": true,
+      "median": 0.029991350440729286,
+      "p02_p98": [
+        0.0,
+        0.2579814942755525
+      ],
+      "n_valid": 3188
+    },
+    "service_accessibility": {
+      "png": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\metric_maps_osm_svm\\Func03_service_accessibility_OSMSVM.png",
+      "written": true,
+      "median": 0.9330201961461062,
+      "p02_p98": [
+        0.7924567462419555,
+        0.9929427792783792
+      ],
+      "n_valid": 3188
+    }
+  }
+}

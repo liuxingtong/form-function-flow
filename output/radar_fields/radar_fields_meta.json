@@ -1,0 +1,69 @@
+{
+  "principle": "No GMM, no clustering, no time-slice proxy. Only raw repository data or direct summary statistics from source data.",
+  "outputs": {
+    "form": "output\\radar_fields\\form_radar_fields.csv",
+    "function": "output\\radar_fields\\function_radar_fields.csv",
+    "flow": "output\\radar_fields\\flow_radar_fields.csv",
+    "combined": "output\\radar_fields\\parcel_radar_fields.csv"
+  },
+  "axes": {
+    "form": [
+      "building_coverage",
+      "avg_height",
+      "road_density",
+      "green_blue_ratio",
+      "heritage_ratio",
+      "barrier_index",
+      "permeability_index",
+      "edge_conductance_mean"
+    ],
+    "function": [
+      "poi_food_density",
+      "poi_retail_density",
+      "poi_office_density",
+      "poi_public_service_density",
+      "poi_leisure_density",
+      "poi_transport_density",
+      "poi_life_service_density",
+      "landuse_residential_ratio",
+      "landuse_commercial_ratio",
+      "landuse_public_ratio",
+      "landuse_green_ratio",
+      "vitality_food_weighted_density",
+      "vitality_retail_weighted_density",
+      "vitality_leisure_weighted_density",
+      "vitality_life_service_weighted_density",
+      "meituan_vitality_proxy"
+    ],
+    "flow": [
+      "walk_length_km_per_km2",
+      "slow_road_length_km_per_km2",
+      "fast_road_length_km_per_km2",
+      "all_road_length_km_per_km2",
+      "walk_length_share",
+      "slow_road_length_share",
+      "fast_road_length_share"
+    ]
+  },
+  "sources": {
+    "form": [
+      "data/morph_state.csv"
+    ],
+    "function": [
+      "data/site_3km/02-POI&AOI/.../Poidata-2025-上海市.geojson",
+      "data/site_3km/02-POI&AOI/2-AOI/landuse-webmap/上海市_Landuse.geojson",
+      "data/site_3km/美团/*.geojson",
+      "data/site_3km/01_units.gpkg"
+    ],
+    "flow": [
+      "F:/Aworks/2026studio/shanghaistation/urban-stitching/analysis/out/networks/walk_clipped.geojson",
+      "F:/Aworks/2026studio/shanghaistation/urban-stitching/analysis/out/networks/slow_clipped.geojson",
+      "F:/Aworks/2026studio/shanghaistation/urban-stitching/analysis/out/networks/express_clipped.geojson",
+      "data/site_3km/01_units.gpkg"
+    ]
+  },
+  "notes": {
+    "function": "POI provides functional skeleton; landuse provides parcel program base; Meituan is mapped to consumption/service buckets and used as vitality weighting instead of a parallel duplicate count layer.",
+    "flow": "Flow layer here is parcel-normalized network structure density from the already prepared urban-stitching walk/slow/express networks, not station-flow or synthetic assignment results."
+  }
+}

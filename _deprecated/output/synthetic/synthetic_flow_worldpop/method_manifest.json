@@ -1,0 +1,562 @@
+{
+  "method": "worldpop_four_step_period_generation_modal_assignment",
+  "inputs": {
+    "worldpop": "F:\\Aworks\\2026studio\\shanghaistation\\all\\15-Worldpop人口密度",
+    "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\SITE.json",
+    "units": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\01_units.gpkg",
+    "func_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\func_state.csv",
+    "mob_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\flow\\output_mobility_state\\mob_state.csv",
+    "morph_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\form\\morph_state.csv",
+    "metroflow_calibration_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\metroflow\\time_slice_calibration.json",
+    "time_slices_csv_resolved": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\03_time_slices.csv",
+    "time_slices_csv_cli": null
+  },
+  "parameters": {
+    "worldpop": "F:\\Aworks\\2026studio\\shanghaistation\\all\\15-Worldpop人口密度",
+    "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\SITE.json",
+    "units": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\01_units.gpkg",
+    "func_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\func_state.csv",
+    "mob_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\flow\\output_mobility_state\\mob_state.csv",
+    "morph_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\form\\morph_state.csv",
+    "data_root": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km",
+    "out_dir": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop",
+    "demography_dir": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography",
+    "metroflow_calibration_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\metroflow\\time_slice_calibration.json",
+    "assignment_edges_csv": null,
+    "force_rebuild_assignment_edges": false,
+    "skip_assignment": false,
+    "buffer_m": 3000.0,
+    "site_buffer_m": 3000.0,
+    "total_trips": 1.0,
+    "beta": 2.0,
+    "d_floor_m": 25.0,
+    "station_sigma_m": 1650.0,
+    "station_weight": 1.15,
+    "station_kernel_strength": 0.35,
+    "transfer_fraction": 0.12,
+    "station_band_m": 400.0,
+    "period_od_max_rows": 20000,
+    "aon_max_origins": 0,
+    "assignment_iters": 5,
+    "assignment_delay_alpha": 0.22,
+    "assignment_delay_power": 2.0,
+    "assignment_scheme": "frank_wolfe",
+    "time_slices_csv": null,
+    "production_diurnal_col": "population_density",
+    "production_diurnal_mode": "poi_composite",
+    "production_diurnal_clip_lo": 0.25,
+    "production_diurnal_clip_hi": 6.5,
+    "production_diurnal_power": 1.15,
+    "no_production_poi_period_scale": false,
+    "production_poi_unit_mean_weight": 0.32,
+    "production_origin_poi_mix": 0.55,
+    "production_diurnal_softmax_temp": 0.28,
+    "no_production_diurnal": false
+  },
+  "time_slices": {
+    "t_ids": [
+      "WD_AM",
+      "WD_PM",
+      "WD_EVE",
+      "WD_NT",
+      "WE_AM",
+      "WE_MD",
+      "WE_EVE",
+      "WE_NT"
+    ],
+    "day_type_by_t_id": {
+      "WD_AM": "weekday",
+      "WD_PM": "weekday",
+      "WD_EVE": "weekday",
+      "WD_NT": "weekday",
+      "WE_AM": "weekend",
+      "WE_MD": "weekend",
+      "WE_EVE": "weekend",
+      "WE_NT": "weekend"
+    },
+    "assignment_period_chain": [
+      [
+        "weekday",
+        "WD_AM"
+      ],
+      [
+        "weekday",
+        "WD_PM"
+      ],
+      [
+        "weekday",
+        "WD_EVE"
+      ],
+      [
+        "weekday",
+        "WD_NT"
+      ],
+      [
+        "weekend",
+        "WE_AM"
+      ],
+      [
+        "weekend",
+        "WE_MD"
+      ],
+      [
+        "weekend",
+        "WE_EVE"
+      ],
+      [
+        "weekend",
+        "WE_NT"
+      ]
+    ],
+    "catalog_rows": [
+      {
+        "t_id": "WD_AM",
+        "t_name": "工作日·第一时段（晨—午前）",
+        "day_type": "weekday",
+        "period": "slice_q1",
+        "start_local": "06:00",
+        "end_local": "11:00",
+        "hour_range_inclusive_start": 6,
+        "hour_range_exclusive_end": 11
+      },
+      {
+        "t_id": "WD_PM",
+        "t_name": "工作日·第二时段（午间）",
+        "day_type": "weekday",
+        "period": "slice_q2",
+        "start_local": "11:00",
+        "end_local": "15:00",
+        "hour_range_inclusive_start": 11,
+        "hour_range_exclusive_end": 15
+      },
+      {
+        "t_id": "WD_EVE",
+        "t_name": "工作日·第三时段（午后—傍晚）",
+        "day_type": "weekday",
+        "period": "slice_q3",
+        "start_local": "15:00",
+        "end_local": "18:00",
+        "hour_range_inclusive_start": 15,
+        "hour_range_exclusive_end": 18
+      },
+      {
+        "t_id": "WD_NT",
+        "t_name": "工作日·第四时段（晚间）",
+        "day_type": "weekday",
+        "period": "slice_q4",
+        "start_local": "18:00",
+        "end_local": "23:00",
+        "hour_range_inclusive_start": 18,
+        "hour_range_exclusive_end": 23
+      },
+      {
+        "t_id": "WE_AM",
+        "t_name": "周末·第一时段（晨—午前）",
+        "day_type": "weekend",
+        "period": "slice_q1",
+        "start_local": "06:00",
+        "end_local": "11:00",
+        "hour_range_inclusive_start": 6,
+        "hour_range_exclusive_end": 11
+      },
+      {
+        "t_id": "WE_MD",
+        "t_name": "周末·第二时段（午间）",
+        "day_type": "weekend",
+        "period": "slice_q2",
+        "start_local": "11:00",
+        "end_local": "15:00",
+        "hour_range_inclusive_start": 11,
+        "hour_range_exclusive_end": 15
+      },
+      {
+        "t_id": "WE_EVE",
+        "t_name": "周末·第三时段（午后—傍晚）",
+        "day_type": "weekend",
+        "period": "slice_q3",
+        "start_local": "15:00",
+        "end_local": "19:00",
+        "hour_range_inclusive_start": 15,
+        "hour_range_exclusive_end": 19
+      },
+      {
+        "t_id": "WE_NT",
+        "t_name": "周末·第四时段（晚间）",
+        "day_type": "weekend",
+        "period": "slice_q4",
+        "start_local": "19:00",
+        "end_local": "23:00",
+        "hour_range_inclusive_start": 19,
+        "hour_range_exclusive_end": 23
+      }
+    ]
+  },
+  "worldpop_clip": {
+    "source": "F:\\Aworks\\2026studio\\shanghaistation\\all\\15-Worldpop人口密度\\上海市_chn_ppp_2020_UNadj.tif",
+    "output_tif": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\worldpop_3km.tif",
+    "buffer_geojson": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\SITE_buffer_3km.geojson",
+    "buffer_m": 3000.0,
+    "src_crs": "EPSG:4326",
+    "src_nodata": 0.0,
+    "raster_interpretation": "WorldPop chn_ppp_* values are treated as persons per pixel; sums are population estimates.",
+    "clipped_shape": [
+      73,
+      92
+    ],
+    "clipped_positive_pixel_count": 5171,
+    "clipped_population_sum": 2113588.0,
+    "clipped_pixel_mean_positive": 408.7387390136719
+  },
+  "worldpop_zonal": {
+    "rows": 4215,
+    "units_with_positive_worldpop": 2087,
+    "worldpop_sum_by_units": 1569340.4651927948,
+    "worldpop_unit_max": 11981.395767211914
+  },
+  "production_diurnal": {
+    "enabled": true,
+    "column": null,
+    "mode": "poi_composite",
+    "clip": [
+      0.25,
+      6.5
+    ],
+    "power": 1.15,
+    "softmax_temp": 0.28,
+    "poi_composite": {
+      "weights_table": "PRODUCTION_POI_WEIGHTS",
+      "t_ids": [
+        "WD_AM",
+        "WD_EVE",
+        "WD_NT",
+        "WD_PM",
+        "WE_AM",
+        "WE_EVE",
+        "WE_MD",
+        "WE_NT"
+      ],
+      "poi_period_scale": true,
+      "poi_unit_mean_weight": 0.32,
+      "denominator": "w*mean_score_by_unit + (1-w)*median_score_by_t_id",
+      "origin_poi_mix": 0.55,
+      "production_raw_formula": "(1-mix)*(population_base*rel) + mix*(period_median_population_base*rel)"
+    },
+    "score_std_global": 1.9575138768261546,
+    "rel_std_global": 0.3808763758049062,
+    "rel_p05": 0.25,
+    "rel_p95": 1.2790272910543392
+  },
+  "feature_table": {
+    "rows": 33720,
+    "units": 4215,
+    "t_ids": [
+      "WD_AM",
+      "WD_PM",
+      "WD_EVE",
+      "WD_NT",
+      "WE_AM",
+      "WE_MD",
+      "WE_EVE",
+      "WE_NT"
+    ],
+    "worldpop_positive_units": 2087,
+    "func_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\func_state.csv",
+    "mob_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\flow\\output_mobility_state\\mob_state.csv",
+    "morph_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\form\\morph_state.csv",
+    "mob_time_impute": {
+      "mob_slice_fallback_applied": {
+        "WD_NT": "WD_EVE",
+        "WE_AM": "WD_AM",
+        "WE_MD": "WD_PM",
+        "WE_EVE": "WD_EVE"
+      },
+      "mob_present_slices": [
+        "WD_AM",
+        "WD_EVE",
+        "WD_PM",
+        "WE_PM"
+      ]
+    },
+    "func_time_impute": {
+      "func_slice_fallback_applied": {
+        "WD_NT": "WD_EVE",
+        "WE_AM": "WD_AM",
+        "WE_MD": "WD_PM",
+        "WE_EVE": "WD_EVE"
+      },
+      "func_present_slices": [
+        "WD_AM",
+        "WD_EVE",
+        "WD_PM",
+        "WE_PM"
+      ]
+    },
+    "glc_land_cover": {
+      "glc_geojson": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\09-开源土地利用\\开源土地利用\\GLC\\2020-开源土地利用GLC30m.geojson",
+      "glc_points_joined": 8920,
+      "glc_units_with_points": 2975
+    }
+  },
+  "attraction_weights": {
+    "WD_AM": {
+      "office_density": 2.55,
+      "transport_service_density": 1.85,
+      "station_proximity": 1.78,
+      "landuse_mix": 0.42,
+      "public_service_density": 0.52,
+      "food_density": 0.2,
+      "retail_density": 0.2,
+      "residential_service_density": 0.03,
+      "heat": 0.12
+    },
+    "WD_EVE": {
+      "office_density": 0.1,
+      "transport_service_density": 0.95,
+      "station_proximity": 0.88,
+      "landuse_mix": 0.55,
+      "public_service_density": 0.22,
+      "food_density": 1.32,
+      "retail_density": 1.15,
+      "residential_service_density": 1.05,
+      "heat": 1.08
+    },
+    "WD_NT": {
+      "office_density": 0.05,
+      "transport_service_density": 0.58,
+      "station_proximity": 0.72,
+      "public_service_density": 0.05,
+      "food_density": 0.92,
+      "retail_density": 0.55,
+      "residential_service_density": 0.88,
+      "heat": 1.05
+    },
+    "WD_PM": {
+      "office_density": 0.72,
+      "transport_service_density": 0.68,
+      "station_proximity": 0.68,
+      "public_service_density": 0.82,
+      "food_density": 1.55,
+      "retail_density": 0.88,
+      "residential_service_density": 0.22,
+      "heat": 0.88
+    },
+    "WE_AM": {
+      "office_density": 0.05,
+      "transport_service_density": 0.92,
+      "station_proximity": 0.88,
+      "public_service_density": 0.72,
+      "food_density": 0.78,
+      "retail_density": 0.85,
+      "residential_service_density": 0.38,
+      "entertainment_density": 0.22,
+      "heat": 0.72
+    },
+    "WE_EVE": {
+      "office_density": 0.05,
+      "transport_service_density": 0.88,
+      "station_proximity": 0.9,
+      "public_service_density": 0.48,
+      "food_density": 1.35,
+      "retail_density": 1.28,
+      "residential_service_density": 0.55,
+      "entertainment_density": 0.72,
+      "heat": 1.48
+    },
+    "WE_MD": {
+      "office_density": 0.05,
+      "transport_service_density": 0.75,
+      "station_proximity": 0.78,
+      "public_service_density": 0.88,
+      "food_density": 1.38,
+      "retail_density": 1.58,
+      "residential_service_density": 0.42,
+      "entertainment_density": 0.38,
+      "heat": 1.28
+    },
+    "WE_NT": {
+      "office_density": 0.05,
+      "transport_service_density": 0.55,
+      "station_proximity": 0.65,
+      "public_service_density": 0.05,
+      "food_density": 1.02,
+      "retail_density": 0.58,
+      "residential_service_density": 0.82,
+      "entertainment_density": 0.45,
+      "heat": 1.12
+    }
+  },
+  "trip_generation_od_weights_note": "trip_production uses PRODUCTION_POI_WEIGHTS; trip_attraction uses ATTRACTION_WEIGHTS (same components, different tables per t_id). Where a POI density is at or below 1e-12, trip-generation scoring substitutes GLC land-cover proxies merged from data/site_3km/09-开源土地利用/开源土地利用/GLC (not WorldPop).",
+  "period_generation": {
+    "period_od_rows": 160000,
+    "period_generation_rows": 33720,
+    "period_od_max_rows_per_t_id": 20000,
+    "full_period_trip_generation_sums": {
+      "WD_AM": 0.1592656774612802,
+      "WD_EVE": 0.10175457597747212,
+      "WD_NT": 0.13170150546951157,
+      "WD_PM": 0.10727824109173617,
+      "WE_AM": 0.12013941836401261,
+      "WE_EVE": 0.14611698072105433,
+      "WE_MD": 0.13217514431979088,
+      "WE_NT": 0.10156845659514213
+    },
+    "retained_top_od_flow_sums": {
+      "WD_AM": 0.000799299472810793,
+      "WD_EVE": 0.0004979009509723476,
+      "WD_NT": 0.0006448319407375015,
+      "WD_PM": 0.00047322768851069936,
+      "WE_AM": 0.00047164143404828795,
+      "WE_EVE": 0.0007449838126939135,
+      "WE_MD": 0.0006047025151715076,
+      "WE_NT": 0.00047578848670581475
+    },
+    "retained_top_od_share": {
+      "WD_AM": 0.005018654901368277,
+      "WD_EVE": 0.004893155380870341,
+      "WD_NT": 0.004896162260550452,
+      "WD_PM": 0.00441121781728348,
+      "WE_AM": 0.003925784230278634,
+      "WE_EVE": 0.005098543708045338,
+      "WE_MD": 0.00457500930514183,
+      "WE_NT": 0.004684411899674086
+    },
+    "period_weights_raw_merged": {
+      "WD_AM": 0.3185313549225604,
+      "WD_PM": 0.21455648218347234,
+      "WD_EVE": 0.20350915195494426,
+      "WD_NT": 0.2634030109390231,
+      "WE_AM": 0.24027883672802525,
+      "WE_MD": 0.2643502886395817,
+      "WE_EVE": 0.29223396144210867,
+      "WE_NT": 0.20313691319028426
+    },
+    "period_mass_by_t_id_normalized": {
+      "WD_AM": 0.1592656774612802,
+      "WD_PM": 0.10727824109173617,
+      "WD_EVE": 0.10175457597747213,
+      "WD_NT": 0.13170150546951154,
+      "WE_AM": 0.12013941836401262,
+      "WE_MD": 0.13217514431979085,
+      "WE_EVE": 0.14611698072105433,
+      "WE_NT": 0.10156845659514213
+    },
+    "furness_doubly_constrained_by_t_id": {
+      "WD_AM": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 1.1603085747530391e-11,
+        "furness_col_max_err": 6.776263578034403e-19,
+        "furness_total_err": 2.7755575615628914e-16
+      },
+      "WD_PM": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 5.655314500659266e-12,
+        "furness_col_max_err": 3.8624702394796095e-19,
+        "furness_total_err": 4.163336342344337e-17
+      },
+      "WD_EVE": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 8.573088284202432e-12,
+        "furness_col_max_err": 3.1848438816761693e-19,
+        "furness_total_err": 6.938893903907228e-17
+      },
+      "WD_NT": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 2.1438040809251303e-11,
+        "furness_col_max_err": 3.9302328752599536e-19,
+        "furness_total_err": 1.3877787807814457e-16
+      },
+      "WE_AM": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 8.716269893349615e-12,
+        "furness_col_max_err": 3.6591823321385775e-19,
+        "furness_total_err": 1.3877787807814457e-17
+      },
+      "WE_MD": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 1.5060869950267106e-11,
+        "furness_col_max_err": 5.014435047745458e-19,
+        "furness_total_err": 2.7755575615628914e-17
+      },
+      "WE_EVE": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 2.414795558067402e-11,
+        "furness_col_max_err": 5.55653613398821e-19,
+        "furness_total_err": 5.551115123125783e-17
+      },
+      "WE_NT": {
+        "furness_max_iter": 400,
+        "furness_tol": 1e-09,
+        "furness_converged": true,
+        "furness_iters": 1,
+        "furness_row_max_err": 1.3968112731461806e-11,
+        "furness_col_max_err": 3.6591823321385775e-19,
+        "furness_total_err": 5.551115123125783e-17
+      }
+    }
+  },
+  "modal_od": {
+    "modal_od_rows": 160000,
+    "modal_flow_sums": {
+      "flow_N01_pedestrian": 0.0022147407893547398,
+      "flow_N02_fast_auto": 5.059032465051459e-07,
+      "flow_N03_slow_auto": 0.0007082645451072042,
+      "flow_N04_transit_proxy": 0.0017888650639424147
+    }
+  },
+  "trip_generation_maps": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\trip_generation_maps.png",
+  "assignment": {
+    "assignment_edges_csv": "output\\synthetic_flow_worldpop\\flow_road_assignment_edges.csv",
+    "rebuilt": false,
+    "period_edge_assignment_long_rows": 1336647,
+    "period_chain_slices_with_od": 8,
+    "period_chain_fw_step_end_by_mod": {
+      "N01_pedestrian": 40,
+      "N01_bike": 40,
+      "N02_fast_auto": 40,
+      "N03_slow_auto": 40,
+      "N04_transit_proxy": 40
+    },
+    "assignment_edge_rows": 85877,
+    "four_class_edge_rows": 1128766,
+    "assignment_modalities": [
+      "N01_bike",
+      "N01_pedestrian",
+      "N02_fast_auto",
+      "N03_slow_auto",
+      "N04_transit_proxy"
+    ],
+    "skipped": false
+  },
+  "outputs": {
+    "worldpop_3km_tif": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\worldpop_3km.tif",
+    "site_buffer_3km_geojson": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\SITE_buffer_3km.geojson",
+    "worldpop_by_unit_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\13_demography\\worldpop_by_unit.csv",
+    "unit_features_by_period_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\trip_generation_unit_features_by_period.csv",
+    "trip_generation_by_period_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\trip_generation_by_period.csv",
+    "synthetic_od_by_period_long_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\synthetic_od_by_period_long.csv",
+    "synthetic_od_modal_by_period_long_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\synthetic_od_modal_by_period_long.csv",
+    "synthetic_edge_flow_period_long_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\synthetic_edge_flow_period_long.csv",
+    "synthetic_edge_flow_period_long_4class_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow_worldpop\\synthetic_edge_flow_period_long_4class.csv"
+  }
+}

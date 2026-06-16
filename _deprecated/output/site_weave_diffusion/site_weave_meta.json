@@ -1,0 +1,62 @@
+{
+  "method": "site_weave_diffusion",
+  "gmm_random_state": 42,
+  "n_components": 7,
+  "feature_columns": [
+    "p_M1",
+    "p_M2",
+    "p_M3",
+    "p_M4",
+    "p_M5",
+    "p_M6",
+    "p_M7",
+    "p_F1",
+    "p_F2",
+    "p_F3",
+    "p_F4",
+    "p_F5",
+    "p_F6",
+    "p_F7",
+    "p_R1",
+    "p_R2",
+    "p_R3",
+    "p_R4",
+    "p_R5",
+    "p_R6",
+    "p_R7",
+    "barrier_index",
+    "accessibility_index",
+    "poi_density",
+    "stay_proxy",
+    "green_blue_ratio",
+    "building_coverage",
+    "dist_to_station",
+    "edge_conductance_mean",
+    "site_z_iface_residential",
+    "site_z_stack_barrier",
+    "site_z_expanse_disused"
+  ],
+  "feature_note": "feat_cols: p_M1..7, p_F1..7, p_R1..7, barrier_index, accessibility_index, poi_density, stay_proxy, green_blue_ratio, building_coverage, dist_to_station, edge_conductance_mean, site_z_iface_residential, site_z_stack_barrier, site_z_expanse_disused",
+  "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\SITE.json",
+  "site_unit_count": 66,
+  "anchor_tid": "WE_NT",
+  "anchor_row_fallback": "若某 unit 无锚点时段行，则用该 unit 在 T_ORDER 中最晚可用时段所在行",
+  "driver_intervention": {
+    "barrier_relief": 0.06,
+    "conductance_boost": 0.08,
+    "green_delta": 0.015,
+    "accessibility_boost": 0.0,
+    "poi_density_boost": 0.0,
+    "scope": "SITE unit rows only; columns as listed; p_M/p_F/p_R untouched"
+  },
+  "edges": {
+    "symmetrize": true,
+    "beta": 1.12,
+    "mask": "source_id or target_id in SITE units"
+  },
+  "diffusion": {
+    "steps": 8,
+    "alpha": 0.38,
+    "mix": "p^{h+1} = (1-alpha)*p^h + alpha*Neigh(p^h); Neigh uses boosted edge_weight_norm"
+  }
+}

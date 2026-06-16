@@ -1,0 +1,46 @@
+{
+  "out_dir": "output\\synthetic_flow",
+  "meta_snippet": {
+    "method": "four_step_lite: trip_gen + gravity_od + modal_softmax + ped_aon_optional",
+    "plan_notes": "Plan A: parcel 邻接网分配步行分量；Plan C: 站核核与换乘层 OD。方式划分为无标定 proxy；小汽车未单独路网分配。",
+    "inputs": {
+      "units": "output\\function\\数据包\\01_units.gpkg",
+      "edges": "output\\function\\数据包\\02_edges.csv",
+      "mob_csv_used": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\flow\\output_mobility_state\\mob_state.csv"
+    },
+    "parameters": {
+      "total_trips": 1.0,
+      "beta": 2.0,
+      "d_floor_m": 25.0,
+      "station_sigma_m": 1650.0,
+      "station_weight": 1.15,
+      "transfer_fraction": 0.12,
+      "station_band_m": 400.0,
+      "col_production": "population_density",
+      "col_attraction": "poi_density"
+    },
+    "arrays_shape": [
+      4215,
+      4215
+    ],
+    "od_sum": 0.9999999999990001,
+    "od_long_rows_written": 400000,
+    "station_lon_lat_default": [
+      121.451257271,
+      31.249149419
+    ],
+    "four_step_extras": true,
+    "aon_max_origins": 600,
+    "edge_flow_rows": 16510,
+    "lost_walk_flow_aon": 9.114989810962187e-05,
+    "aon_unassigned_od_pairs": 814.0,
+    "edge_flow_aon_ped_rows": 7934
+  },
+  "aon_merge_hit_frac": 1.0,
+  "spearman_flow_vs_conductance": -0.040288769158875345,
+  "mean_flow_ped_aon_cross_arterial": 0.00010259253491760007,
+  "mean_flow_ped_aon_no_cross_arterial": 6.153529060959186e-05,
+  "mean_flow_ped_aon_near_station_quartile": 8.679905237605891e-05,
+  "mean_flow_ped_aon_far_station": 3.728054790855272e-05,
+  "status": "ok"
+}

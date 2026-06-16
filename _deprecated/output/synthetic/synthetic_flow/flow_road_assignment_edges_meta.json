@@ -1,0 +1,35 @@
+{
+  "method": "flow_geojson_line_segments_plus_centroid_snap_connectors",
+  "inputs": {
+    "units": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\01_units.gpkg",
+    "data_root": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km",
+    "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\SITE.json",
+    "enriched_n01_segments_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\synthetic_flow\\n01_walk_segments_from_enriched.csv"
+  },
+  "parameters": {
+    "snap_max_m": 650.0,
+    "bbox_pad_m": 280.0,
+    "site_buffer_m": 3000.0
+  },
+  "stats": {
+    "used": 15,
+    "skipped_size": 1,
+    "skipped_empty": 0,
+    "skipped_nonline": 28,
+    "skipped_bicycle": 1,
+    "enriched_n01_segment_rows": 29484,
+    "road_segment_rows_before_merge": 86409,
+    "connector_rows": 4215,
+    "final_edge_rows": 90624,
+    "units_total": 4215,
+    "units_not_snapped": 0
+  },
+  "allow_columns": [
+    "allow_N01_pedestrian",
+    "allow_N01_bike",
+    "allow_N02_fast_auto",
+    "allow_N03_slow_auto",
+    "allow_N04_transit_proxy"
+  ],
+  "notes": "Motor modes do not use pedestrian-only layers; N01 does not use pure motorway layers in this builder. Fragmented networks increase unreachable OD."
+}

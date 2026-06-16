@@ -1,0 +1,256 @@
+{
+  "road_graph_meta": {
+    "graph_nodes_lcc": 6401,
+    "graph_edges_lcc": 6768,
+    "road_layers_graph": [
+      "04-交通数据/1-交通路网/2-分类图层/上海市_快速路.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_主干道.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_行人道路.geojson"
+    ],
+    "road_layers_length": [
+      "04-交通数据/1-交通路网/2-分类图层/上海市_快速路.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_主干道.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_行人道路.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_主要公路线.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_其它道路.geojson",
+      "04-交通数据/1-交通路网/2-分类图层/上海市_市区一级道路.geojson"
+    ]
+  },
+  "n_components": 7,
+  "flow_weights_source": "blended",
+  "components": [
+    {
+      "id": 1,
+      "zh_name": "负荷高·拥堵高·站向高",
+      "mean_z": {
+        "road_centrality": 0.8016801679752235,
+        "accessibility_index": -0.2959894724195501,
+        "population_density": -0.2829361279519143,
+        "traffic_intensity": 0.6823764816206381,
+        "congestion_proxy": 0.7855912611369257,
+        "station_attraction": 1.4300731595871023,
+        "transit_facility_density": -0.1621471026531912,
+        "barrier_index": 0.534141043809368,
+        "bottleneck_index": 0.5087996766031164,
+        "flow_in_proxy": -0.14580722302092625,
+        "flow_out_proxy": 1.423159575545893,
+        "stay_proxy": -0.1578617778805024
+      },
+      "code": "R0"
+    },
+    {
+      "id": 2,
+      "zh_name": "负荷高·拥堵高·阻隔低",
+      "mean_z": {
+        "road_centrality": -0.06747316082728037,
+        "accessibility_index": 0.6765070176680577,
+        "population_density": 0.06583084256755617,
+        "traffic_intensity": 0.7230412450885622,
+        "congestion_proxy": 0.5701966241913731,
+        "station_attraction": -0.29920679813602935,
+        "transit_facility_density": -0.16214710265319085,
+        "barrier_index": -0.8546736345989718,
+        "bottleneck_index": -0.6794108026414882,
+        "flow_in_proxy": -0.1458072230209261,
+        "flow_out_proxy": -0.29020081582274554,
+        "stay_proxy": -0.1578617778805022
+      },
+      "code": "R1"
+    },
+    {
+      "id": 3,
+      "zh_name": "负荷中高·拥堵高·可达低",
+      "mean_z": {
+        "road_centrality": -0.22565464098805169,
+        "accessibility_index": -1.304456042819347,
+        "population_density": 0.26211100889475064,
+        "traffic_intensity": 0.7449999815092818,
+        "congestion_proxy": 0.9297595416369804,
+        "station_attraction": -0.4356682598279035,
+        "transit_facility_density": -0.1621471026531909,
+        "barrier_index": 1.2900714466588856,
+        "bottleneck_index": 1.1132968007128805,
+        "flow_in_proxy": -0.14580722302092602,
+        "flow_out_proxy": -0.41449283506622403,
+        "stay_proxy": -0.15786177788050226
+      },
+      "code": "R2"
+    },
+    {
+      "id": 4,
+      "zh_name": "负荷中·拥堵中·轨道强",
+      "mean_z": {
+        "road_centrality": 0.35447422471864803,
+        "accessibility_index": -0.45756946091620465,
+        "population_density": -0.30204700912599636,
+        "traffic_intensity": 0.22207233844377217,
+        "congestion_proxy": 0.3273200601021809,
+        "station_attraction": 1.1265112042515515,
+        "transit_facility_density": 5.832748380642611,
+        "barrier_index": 0.8406544775022095,
+        "bottleneck_index": 0.805839251792262,
+        "flow_in_proxy": 5.244970955665519,
+        "flow_out_proxy": 1.0825591623371589,
+        "stay_proxy": 5.678596868099774
+      },
+      "code": "R3"
+    },
+    {
+      "id": 5,
+      "zh_name": "负荷低·拥堵低·阻隔低",
+      "mean_z": {
+        "road_centrality": -0.2804332160470365,
+        "accessibility_index": 0.6567851052392415,
+        "population_density": -2.3954543813653544e-05,
+        "traffic_intensity": -1.3581796690125223,
+        "congestion_proxy": -1.3437971023116484,
+        "station_attraction": -0.330256553770874,
+        "transit_facility_density": -0.16214710265319046,
+        "barrier_index": -0.8546736345989693,
+        "bottleneck_index": -0.6888504331681521,
+        "flow_in_proxy": -0.1458072230209257,
+        "flow_out_proxy": -0.33079293648530056,
+        "stay_proxy": -0.15786177788050185
+      },
+      "code": "R4"
+    },
+    {
+      "id": 6,
+      "zh_name": "负荷高·拥堵高·站域弱",
+      "mean_z": {
+        "road_centrality": -0.08993933382746792,
+        "accessibility_index": 0.1252576607921448,
+        "population_density": 0.056575478055385875,
+        "traffic_intensity": 0.7115206829697055,
+        "congestion_proxy": 0.7165414085352177,
+        "station_attraction": -0.2866733644801706,
+        "transit_facility_density": -0.16214710265319027,
+        "barrier_index": 0.14007735944592273,
+        "bottleneck_index": -0.17701533715311385,
+        "flow_in_proxy": -0.14580722302092552,
+        "flow_out_proxy": -0.2901001030883163,
+        "stay_proxy": -0.15786177788050176
+      },
+      "code": "R5"
+    },
+    {
+      "id": 7,
+      "zh_name": "负荷低·拥堵低·阻隔高",
+      "mean_z": {
+        "road_centrality": 0.004396217981388341,
+        "accessibility_index": -0.6841899819808249,
+        "population_density": -0.09190356818942962,
+        "traffic_intensity": -1.3581796690125274,
+        "congestion_proxy": -1.3437971023116542,
+        "station_attraction": 0.16202786642498285,
+        "transit_facility_density": -0.1621471026531911,
+        "barrier_index": 0.7994282598164592,
+        "bottleneck_index": 0.689072295421127,
+        "flow_in_proxy": -0.14580722302092625,
+        "flow_out_proxy": 0.14584945586451878,
+        "stay_proxy": -0.15786177788050243
+      },
+      "code": "R6"
+    }
+  ],
+  "transition_row_norm": [
+    [
+      0.9610999329309189,
+      0.01609657947686117,
+      0.007377598926894702,
+      0.0,
+      0.0,
+      0.015425888665325285,
+      0.0
+    ],
+    [
+      0.0050335570469798654,
+      0.9949664429530202,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.004492939666238768,
+      0.0,
+      0.9948652118100129,
+      0.0,
+      0.0,
+      0.0006418485237483953,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.9972924187725631,
+      0.0,
+      0.002707581227436823
+    ],
+    [
+      0.010806916426512969,
+      0.0,
+      0.001440922190201729,
+      0.0,
+      0.0,
+      0.9877521613832853,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.005303760848601736,
+      0.0,
+      0.9946962391513983
+    ]
+  ],
+  "t_order": [
+    "WD_AM",
+    "WD_PM",
+    "WD_EVE",
+    "WE_PM"
+  ],
+  "r04_r05_diagnostics": {
+    "all_same_sequence_ratio": 0.9831553973902728,
+    "top1_sequence_ratio": 0.2797153024911032,
+    "n_unique_sequences": 21,
+    "transition_diag_mean": 0.9900960581430284,
+    "transition_diag_mean_soft_stepwise": {
+      "WD_AM->WD_PM": 0.969668596710954,
+      "WD_PM->WD_EVE": 0.9794265804954153,
+      "WD_EVE->WE_PM": 0.9786660147697442
+    }
+  },
+  "state_names_ordered": [
+    "负荷高·拥堵高·站向高",
+    "负荷高·拥堵高·阻隔低",
+    "负荷中高·拥堵高·可达低",
+    "负荷中·拥堵中·轨道强",
+    "负荷低·拥堵低·阻隔低",
+    "负荷高·拥堵高·站域弱",
+    "负荷低·拥堵低·阻隔高"
+  ],
+  "state_codes_ordered": [
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6"
+  ]
+}

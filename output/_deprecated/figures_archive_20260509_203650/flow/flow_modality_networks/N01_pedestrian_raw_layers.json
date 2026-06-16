@@ -1,0 +1,38 @@
+{
+  "script": "plot_N01_pedestrian_enriched.py",
+  "png": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\_deprecated\\figures_archive_20260509_203650\\flow\\flow_modality_networks\\N01_pedestrian_raw_layers.png",
+  "coverage_radius_m": 70.0,
+  "target_frac": 0.7,
+  "coverage_official_only": 0.16322657176749703,
+  "coverage_combined": 0.8790035587188612,
+  "coverage_supplement_only": 0.8790035587188612,
+  "extended_road_fclass": true,
+  "rings_in_coverage": false,
+  "n_supplement_segments": 4972,
+  "n_ring_segments": 1,
+  "meets_target": true,
+  "supplement_roots": [
+    "f:\\Aworks\\2026studio\\shanghaistation\\all\\04-交通数据",
+    "f:\\Aworks\\2026studio\\shanghaistation\\all\\16-城市环路",
+    "f:\\Aworks\\2026studio\\shanghaistation\\all\\上海道路"
+  ],
+  "site_buffer_m": 3000.0,
+  "inputs": {
+    "units": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\function\\数据包\\01_units.gpkg",
+    "data_root": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km",
+    "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\SITE.json",
+    "site_buffer_m": 3000.0
+  },
+  "supplement_notes": [
+    "扫描: f:\\Aworks\\2026studio\\shanghaistation\\all\\04-交通数据",
+    "慢行 shp: 上海市_行人道路.shp → 2583 段",
+    "慢行 shp: 上海市_轮渡.shp → 21 段",
+    "扫描: f:\\Aworks\\2026studio\\shanghaistation\\all\\16-城市环路",
+    "环路 shp: 中环.shp (1 seg)",
+    "环路 shp: 内环.shp (1 seg)",
+    "环路 shp: 外环.shp (1 seg)",
+    "环路 shp: 郊环.shp (1 seg)",
+    "扫描: f:\\Aworks\\2026studio\\shanghaistation\\all\\上海道路",
+    "上海道路 上海市_road.shp: 7491 段（extended=True）"
+  ]
+}

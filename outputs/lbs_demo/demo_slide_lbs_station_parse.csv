@@ -1,0 +1,2 @@
+evaluation_framework,indicator,timestamp_local,query_x,query_y,vitality_bin,vitality_min,vitality_max,legend_mode,longitude_wgs84,latitude_wgs84
+地块更新潜力评价指标,LBS活力,2025-06-12T20:00:00,300,200,6,11316459.171301,15739382.875,synthetic_gradient_fallback,121.47008347245409,31.26987468671679

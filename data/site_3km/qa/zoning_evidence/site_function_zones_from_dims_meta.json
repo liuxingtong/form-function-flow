@@ -1,0 +1,71 @@
+{
+  "method": "Within SITE-intersecting parcels: robust 0–1 normalize each dim (p5–p95); five linear affinity scores; argmax -> fz_site_zh. Outside SITE: no label.",
+  "zone_weights": [
+    {
+      "key": "gateway",
+      "label_zh": "站城门户区",
+      "weights_on_N_station_business_public_stitch": [
+        0.52,
+        0.18,
+        0.25,
+        0.05
+      ],
+      "note": "亲和度为 sum(N_i * w_i)"
+    },
+    {
+      "key": "business",
+      "label_zh": "商务核心区",
+      "weights_on_N_station_business_public_stitch": [
+        0.12,
+        0.58,
+        0.18,
+        0.12
+      ],
+      "note": "亲和度为 sum(N_i * w_i)"
+    },
+    {
+      "key": "consumption",
+      "label_zh": "消费活力区",
+      "weights_on_N_station_business_public_stitch": [
+        0.15,
+        0.22,
+        0.52,
+        0.11
+      ],
+      "note": "亲和度为 sum(N_i * w_i)"
+    },
+    {
+      "key": "green_stitch",
+      "label_zh": "绿地缝合区",
+      "weights_on_N_station_business_public_stitch": [
+        0.04,
+        0.06,
+        0.38,
+        0.52
+      ],
+      "note": "亲和度为 sum(N_i * w_i)"
+    },
+    {
+      "key": "transition",
+      "label_zh": "城市过渡区",
+      "weights_on_N_station_business_public_stitch": [
+        0.18,
+        0.22,
+        0.3,
+        0.32
+      ],
+      "note": "过渡区为 w0*(1-N_station)+w1*(1-N_business)+w2*N_public+w3*N_stitch"
+    }
+  ],
+  "caveats": [
+    "消费活力轴在无轴线矢量时用「公共停留+消费相关 dim」代理，与规划「轴」几何不必一致。",
+    "五类互斥 argmax 会掩盖混合用地；可看各 L_* 列与 fz_site_margin。"
+  ],
+  "n_site_parcels": 38,
+  "buffer_m": 0.0,
+  "outputs": {
+    "gpkg": "data\\site_3km\\qa\\zoning_evidence\\site_function_zones_from_dims.gpkg",
+    "csv": "data\\site_3km\\qa\\zoning_evidence\\site_function_zones_from_dims.csv",
+    "map_png": "data\\site_3km\\qa\\zoning_evidence\\site_function_zones_from_dims_map.png"
+  }
+}

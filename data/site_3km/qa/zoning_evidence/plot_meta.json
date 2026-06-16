@@ -1,0 +1,20 @@
+{
+  "inputs": {
+    "units": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\01_units.gpkg",
+    "radar_csv": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\radar_fields\\parcel_radar_fields.csv"
+  },
+  "formula_zh": {
+    "dim_station_city": "z(近站权重) + z(交通+0.35×生活POI密度) + z(餐饮+购物POI)",
+    "dim_business_access": "z(快速路网长) + 0.6×z(慢速路) + z(办公POI) + 0.5×z(公服POI)",
+    "dim_public_stay": "1.1×z(绿地用地比) + z(公服用地比) + z(餐饮+购物+休闲POI) + z(步行路长占比)",
+    "dim_slow_stitch": "z(渗透性) + z(边传导) + 0.8×z(步行占比) + 0.5×z(步行网密度) - 0.7×z(阻隔指数)"
+  },
+  "note": "得分在全区地块内做 z 标准化后加权求和；用于与规划概念对照，非认定法定功能。",
+  "outputs": [
+    "data\\site_3km\\qa\\zoning_evidence\\zoning_evidence_four_panel.png",
+    "data\\site_3km\\qa\\zoning_evidence\\zoning_evidence__dim_station_city.png",
+    "data\\site_3km\\qa\\zoning_evidence\\zoning_evidence__dim_business_access.png",
+    "data\\site_3km\\qa\\zoning_evidence\\zoning_evidence__dim_public_stay.png",
+    "data\\site_3km\\qa\\zoning_evidence\\zoning_evidence__dim_slow_stitch.png"
+  ]
+}

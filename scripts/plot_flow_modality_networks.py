@@ -38,17 +38,21 @@ REPO = Path(__file__).resolve().parents[1]
 DEFAULT_MAX_FILE_MB = 30.0
 
 # (类别显示名, glob 子串列表；命中任一即归入该类；按顺序匹配，先到先得）
-# 慢行类须包含「自行车道」等文件名：市级数据中步行专用线往往较少，骑行设施单独成层，
-# 若不匹配「自行车」则会被归入未匹配，图上会显得覆盖极差。
+# 不含专用「自行车道」图层（文件名 stem 含「自行车」单独剔除），步行制图与分配对齐 enriched N01。
 MODALITY_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("轨道与站点（原始矢量）", ("地铁", "轨道", "铁路", "metroflow", "station", "站点")),
     (
         "慢行与人行（原始矢量）",
-        ("行人", "步行", "慢行", "绿道", "运动场跑道", "跑道", "自行车道", "自行车", "骑行", "轮渡", "渡口", "人渡口"),
+        ("行人", "步行", "慢行", "绿道", "运动场跑道", "跑道", "轮渡", "渡口", "人渡口"),
     ),
     ("快速路主干（原始矢量）", ("快速路", "高速", "主干道")),
     ("其它机动车道路（原始矢量）", ("公路", "道路", "街坊", "次级", "其它", "一级", "市区")),
 ]
+
+
+def is_dedicated_bicycle_geojson_path(path: Path) -> bool:
+    """专用自行车道等图层（stem 含「自行车」），不参与慢行步行制图/分配。"""
+    return "自行车" in path.stem
 
 
 def configure_cn_font() -> None:
@@ -362,6 +366,8 @@ def main() -> int:
     buckets: dict[str, list[Path]] = {name: [] for name, _ in MODALITY_RULES}
     unassigned: list[Path] = []
     for p in all_paths:
+        if is_dedicated_bicycle_geojson_path(p):
+            continue
         mod = _assign_modality(p)
         if mod is None:
             unassigned.append(p)

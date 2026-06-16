@@ -1,0 +1,116 @@
+观测向量聚类画像诊断
+========================================
+动态特征增强系数：1.15
+动态增强字段：food_density, retail_density, office_density, public_service_density, entertainment_density, transport_service_density, dianping_heat, meituan_heat, relative_heat_index, relative_consumption_index
+显式时段信号增强系数：0.52
+静态锚点增强系数：0.96
+静态锚点字段：poi_density, poi_entropy, housing_price, service_accessibility
+
+一、GMM Component 原始特征均值表
+     poi_density  poi_entropy  food_density  retail_density  office_density  residential_service_density  public_service_density  entertainment_density  transport_service_density  dianping_heat  meituan_heat  housing_price  service_accessibility  relative_heat_index  relative_consumption_index
+F0        0.0942       2.0709        0.0137          0.0126          0.0073                       0.0185                  0.0063                 0.0073                     0.0055            0.0        0.0000     71616.4890                 0.9455               0.0000                      0.9892
+F1        0.0145       1.0752        0.0001          0.0001          0.0010                       0.0022                  0.0014                 0.0016                     0.0029            0.0        0.0000     71143.3127                 0.9052               0.0000                      0.7557
+F2        0.0738       2.0416        0.0035          0.0078          0.0095                       0.0130                  0.0080                 0.0027                     0.0081            0.0      441.4461     70783.2649                 0.9377               0.1632                      0.5978
+F3        0.0048       0.2723        0.0000          0.0000          0.0002                       0.0004                  0.0000                 0.0000                     0.0006            0.0        0.0000     69257.0000                 0.8924               0.0000                      0.4880
+F4        0.0943       2.2984        0.0106          0.0125          0.0079                       0.0191                  0.0069                 0.0063                     0.0063            0.0     3220.1352     74415.7821                 0.9457               0.9889                      0.9810
+F5        0.1748       2.1719        0.0163          0.0722          0.0088                       0.0147                  0.0150                 0.0068                     0.0062            0.0     3793.1158     72110.3217                 0.9569               0.6445                      1.0219
+F6        0.0839       1.8804        0.0118          0.0119          0.0018                       0.0220                  0.0027                 0.0075                     0.0043            0.0      939.2275     72436.5455                 0.9323               0.3635                      1.3142
+F7        0.0211       1.0106        0.0001          0.0000          0.0016                       0.0041                  0.0038                 0.0000                     0.0031            0.0        0.0000     71106.6685                 0.9107               0.0000                      0.5830
+F8        0.0507       1.7550        0.0031          0.0038          0.0052                       0.0073                  0.0086                 0.0047                     0.0060            0.0        0.0000     69256.9819                 0.9336               0.0000                      0.9420
+F9        0.0191       1.5386        0.0009          0.0017          0.0004                       0.0033                  0.0009                 0.0016                     0.0014            0.0        0.0000     71729.1073                 0.9042               0.0000                      0.9900
+F10       0.0245       1.7374        0.0017          0.0036          0.0011                       0.0039                  0.0016                 0.0012                     0.0025            0.0        0.0000     72700.9728                 0.9161               0.0000                      0.9972
+
+二、GMM Component 标准化画像（z-score，用于解释高低特征）
+     poi_density  poi_entropy  food_density  retail_density  office_density  residential_service_density  public_service_density  entertainment_density  transport_service_density  dianping_heat  meituan_heat  housing_price  service_accessibility  relative_heat_index  relative_consumption_index
+F0         0.693        0.636         0.608           0.293           0.350                        0.548                   0.153                  0.438                      0.243            0.0        -0.060          0.018                  0.445               -0.396                       0.281
+F1        -0.540       -0.608        -0.329          -0.294          -0.255                       -0.379                  -0.265                 -0.204                     -0.141            0.0        -0.060         -0.012                 -0.346               -0.396                      -0.258
+F2         0.378        0.600        -0.089           0.069           0.569                        0.236                   0.296                 -0.076                      0.618            0.0        -0.010         -0.036                  0.292                0.022                      -0.622
+F3        -0.690       -1.611        -0.330          -0.295          -0.339                       -0.485                  -0.386                 -0.386                     -0.485            0.0        -0.060         -0.135                 -0.598               -0.396                      -0.875
+F4         0.695        0.921         0.398           0.286           0.409                        0.579                   0.208                  0.324                      0.359            0.0         0.304          0.200                  0.450                2.138                       0.262
+F5         1.940        0.763         0.792           3.069           0.502                        0.332                   0.897                  0.381                      0.345            0.0         0.369          0.051                  0.670                1.255                       0.356
+F6         0.535        0.398         0.479           0.260          -0.181                        0.744                  -0.156                  0.464                      0.052            0.0         0.046          0.072                  0.186                0.535                       1.030
+F7        -0.437       -0.689        -0.329          -0.294          -0.204                       -0.271                  -0.058                 -0.386                     -0.113            0.0        -0.060         -0.015                 -0.239               -0.396                      -0.656
+F8         0.020        0.242        -0.116          -0.118           0.146                       -0.092                   0.349                  0.143                      0.316            0.0        -0.060         -0.135                  0.211               -0.396                       0.172
+F9        -0.468       -0.029        -0.271          -0.219          -0.318                       -0.318                  -0.312                 -0.202                     -0.369            0.0        -0.060          0.026                 -0.365               -0.396                       0.283
+F10       -0.385        0.220        -0.216          -0.127          -0.247                       -0.287                  -0.248                 -0.255                     -0.214            0.0        -0.060          0.089                 -0.132               -0.396                       0.299
+
+三、各 Component 的时段构成比例
+t_id  WD_AM  WD_PM  WD_EVE  WD_NT  WE_AM  WE_MD  WE_EVE  WE_NT
+F0    0.123  0.132   0.134  0.113  0.122  0.132   0.133  0.113
+F1    0.066  0.062   0.313  0.064  0.058  0.062   0.313  0.064
+F2    0.500  0.000   0.000  0.000  0.500  0.000   0.000  0.000
+F3    0.130  0.123   0.131  0.116  0.132  0.123   0.130  0.116
+F4    0.130  0.116   0.132  0.120  0.131  0.116   0.135  0.120
+F5    0.037  0.283   0.153  0.035  0.040  0.280   0.137  0.035
+F6    0.006  0.006   0.006  0.485  0.002  0.006   0.006  0.485
+F7    0.120  0.127   0.118  0.134  0.122  0.127   0.119  0.134
+F8    0.140  0.130   0.121  0.111  0.137  0.130   0.119  0.111
+F9    0.131  0.112   0.123  0.133  0.132  0.112   0.124  0.133
+F10   0.069  0.236   0.133  0.060  0.071  0.238   0.134  0.060
+
+四、自动命名与特征支撑解释
+F0（语义摘要：岗位密度—房价联合偏高）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.12, WD_PM=0.13, WD_EVE=0.13, WD_NT=0.11, WE_AM=0.12, WE_MD=0.13, WE_EVE=0.13, WE_NT=0.11。
+  主要正向支撑：poi_density z=0.69；poi_entropy z=0.64；food_density z=0.61；residential_service_density z=0.55；service_accessibility z=0.44。
+  主要短板/低值：relative_heat_index z=-0.40；meituan_heat z=-0.06；dianping_heat z=0.00。
+  样本数：4921
+
+F1（语义摘要：距离衰减·客流代理偏高）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.07, WD_PM=0.06, WD_EVE=0.31, WD_NT=0.06, WE_AM=0.06, WE_MD=0.06, WE_EVE=0.31, WE_NT=0.06。
+  主要正向支撑：dianping_heat z=0.00；housing_price z=-0.01；meituan_heat z=-0.06；transport_service_density z=-0.14；entertainment_density z=-0.20。
+  主要短板/低值：poi_entropy z=-0.61；poi_density z=-0.54；relative_heat_index z=-0.40。
+  样本数：534
+
+F2（语义摘要：距离衰减·客流代理偏高（id=2））
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.50, WD_PM=0.00, WD_EVE=0.00, WD_NT=0.00, WE_AM=0.50, WE_MD=0.00, WE_EVE=0.00, WE_NT=0.00。
+  主要正向支撑：transport_service_density z=0.62；poi_entropy z=0.60；office_density z=0.57；poi_density z=0.38；public_service_density z=0.30。
+  主要短板/低值：relative_consumption_index z=-0.62；food_density z=-0.09；entertainment_density z=-0.08。
+  样本数：372
+
+F3（语义摘要：零售餐饮代理偏高）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.13, WD_PM=0.12, WD_EVE=0.13, WD_NT=0.12, WE_AM=0.13, WE_MD=0.12, WE_EVE=0.13, WE_NT=0.12。
+  主要正向支撑：dianping_heat z=0.00；meituan_heat z=-0.06；housing_price z=-0.13；retail_density z=-0.29；food_density z=-0.33。
+  主要短板/低值：poi_entropy z=-1.61；relative_consumption_index z=-0.87；poi_density z=-0.69。
+  样本数：3814
+
+F4（语义摘要：距离衰减·客流代理偏高（id=4））
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.13, WD_PM=0.12, WD_EVE=0.13, WD_NT=0.12, WE_AM=0.13, WE_MD=0.12, WE_EVE=0.13, WE_NT=0.12。
+  主要正向支撑：relative_heat_index z=2.14；poi_entropy z=0.92；poi_density z=0.70；residential_service_density z=0.58；service_accessibility z=0.45。
+  主要短板/低值：dianping_heat z=0.00；housing_price z=0.20；public_service_density z=0.21。
+  样本数：4471
+
+F5（语义摘要：距离衰减·客流代理偏高（id=5））
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.04, WD_PM=0.28, WD_EVE=0.15, WD_NT=0.04, WE_AM=0.04, WE_MD=0.28, WE_EVE=0.14, WE_NT=0.04。
+  主要正向支撑：retail_density z=3.07；poi_density z=1.94；relative_heat_index z=1.26；public_service_density z=0.90；food_density z=0.79。
+  主要短板/低值：dianping_heat z=0.00；housing_price z=0.05；residential_service_density z=0.33。
+  样本数：628
+
+F6（语义摘要：居住混合·熵偏高）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.01, WD_PM=0.01, WD_EVE=0.01, WD_NT=0.49, WE_AM=0.00, WE_MD=0.01, WE_EVE=0.01, WE_NT=0.49。
+  主要正向支撑：relative_consumption_index z=1.03；residential_service_density z=0.74；relative_heat_index z=0.54；poi_density z=0.54；food_density z=0.48。
+  主要短板/低值：office_density z=-0.18；public_service_density z=-0.16；dianping_heat z=0.00。
+  样本数：905
+
+F7（语义摘要：文娱餐饮·夜间代理偏高）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.12, WD_PM=0.13, WD_EVE=0.12, WD_NT=0.13, WE_AM=0.12, WE_MD=0.13, WE_EVE=0.12, WE_NT=0.13。
+  主要正向支撑：dianping_heat z=0.00；housing_price z=-0.01；public_service_density z=-0.06；meituan_heat z=-0.06；transport_service_density z=-0.11。
+  主要短板/低值：poi_entropy z=-0.69；relative_consumption_index z=-0.66；poi_density z=-0.44。
+  样本数：4810
+
+F8（语义摘要：交通·公服可达联合）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.14, WD_PM=0.13, WD_EVE=0.12, WD_NT=0.11, WE_AM=0.14, WE_MD=0.13, WE_EVE=0.12, WE_NT=0.11。
+  主要正向支撑：public_service_density z=0.35；transport_service_density z=0.32；poi_entropy z=0.24；service_accessibility z=0.21；relative_consumption_index z=0.17。
+  主要短板/低值：relative_heat_index z=-0.40；housing_price z=-0.13；retail_density z=-0.12。
+  样本数：5640
+
+F9（语义摘要：居住公服·社区生活混合）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.13, WD_PM=0.11, WD_EVE=0.12, WD_NT=0.13, WE_AM=0.13, WE_MD=0.11, WE_EVE=0.12, WE_NT=0.13。
+  主要正向支撑：relative_consumption_index z=0.28；housing_price z=0.03；dianping_heat z=0.00；poi_entropy z=-0.03；meituan_heat z=-0.06。
+  主要短板/低值：poi_density z=-0.47；relative_heat_index z=-0.40；transport_service_density z=-0.37。
+  样本数：6299
+
+F10（语义摘要：多维接近·均衡残余型）
+  命名说明：依据连续变量 z 画像的相对强弱归纳（观测向量口径，不作街区功能定性）。时段构成：WD_AM=0.07, WD_PM=0.24, WD_EVE=0.13, WD_NT=0.06, WE_AM=0.07, WE_MD=0.24, WE_EVE=0.13, WE_NT=0.06。
+  主要正向支撑：relative_consumption_index z=0.30；poi_entropy z=0.22；housing_price z=0.09；dianping_heat z=0.00；meituan_heat z=-0.06。
+  主要短板/低值：relative_heat_index z=-0.40；poi_density z=-0.38；residential_service_density z=-0.29。
+  样本数：1326

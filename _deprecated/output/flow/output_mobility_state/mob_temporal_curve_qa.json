@@ -1,0 +1,33 @@
+{
+  "units": 4215,
+  "rows": 33720,
+  "peak_raw_p95": 0.22006833447245927,
+  "peak_smooth_p95": 0.15061323470450688,
+  "cyc_gap_raw_mean": 0.04241210328465873,
+  "cyc_gap_smooth_mean": 0.005467175240409328,
+  "hyper_params": {
+    "lambda1": 0.08,
+    "lambda2": 0.03,
+    "lambda_c": 0.05,
+    "lr": 0.06,
+    "max_iter": 500,
+    "tol": 1e-07,
+    "p_max": 0.35,
+    "apply_peak_cap": true
+  },
+  "raw_proxy_cols": [
+    "traffic_intensity",
+    "population_density",
+    "stay_proxy"
+  ],
+  "t_order": [
+    "WD_AM",
+    "WD_PM",
+    "WD_EVE",
+    "WD_NT",
+    "WE_AM",
+    "WE_MD",
+    "WE_EVE",
+    "WE_NT"
+  ]
+}

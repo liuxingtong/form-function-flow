@@ -1,0 +1,27 @@
+{
+  "out_dir": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\site_housing_prices",
+  "n_points_total": 3631,
+  "n_grid_cells": 432,
+  "price_vmin_vmax_percentile_2_98": [
+    34938.36,
+    146866.64
+  ],
+  "median_price_yuan_per_sqm": 73530.0,
+  "property_types": [
+    "住宅",
+    "公寓住宅",
+    "其他",
+    "别墅",
+    "办公",
+    "商业",
+    "商住楼",
+    "暂无",
+    "标准写字楼",
+    "自建房"
+  ],
+  "anchor_lon_lat": [
+    121.45965994530893,
+    31.249471659655892
+  ],
+  "overview_osm_svm_png": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\output\\site_housing_prices\\H00_房价分布_总体_OSMSVM.png"
+}

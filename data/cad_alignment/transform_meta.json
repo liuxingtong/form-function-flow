@@ -1,0 +1,42 @@
+{
+  "site_dxf": "F:\\Aworks\\2026studio\\shanghaistation\\site.dxf",
+  "district_dxf": "F:\\Aworks\\2026studio\\shanghaistation\\district.dxf",
+  "site_json": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\SITE.json",
+  "utm_epsg": 32651,
+  "similarity": {
+    "scale": 0.9155346622279459,
+    "R": [
+      [
+        0.9999999307206044,
+        0.00037223485479536723
+      ],
+      [
+        -0.0003722348547953752,
+        0.9999999307206042
+      ]
+    ],
+    "t_row_utm": [
+      352077.9935907636,
+      3455683.225750415
+    ],
+    "convention": "utm_row = s * cad_row @ R.T + t_row; lonlat = inv_epsg4326(utm_row)"
+  },
+  "fit": {
+    "samples": 512,
+    "icp_on_resampled_cad_points": {
+      "mean_distance_m_point_to_ref_polyline": 5.6890973901214,
+      "max_distance_m_point_to_ref_polyline": 69.75805099625457,
+      "rms_residual_m_to_icp_targets": 10.32986613508907
+    },
+    "dxf_polyline_vertices": {
+      "mean_distance_m_dxf_vertices_to_ref_polyline": 4.368982301939058,
+      "max_distance_m_dxf_vertices_to_ref_polyline": 9.19270418020666
+    }
+  },
+  "outputs": {
+    "site_local": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_dxf\\local",
+    "site_crs84": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_dxf\\crs84",
+    "district_local": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\district_dxf\\local",
+    "district_crs84": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\district_dxf\\crs84"
+  }
+}

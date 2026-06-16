@@ -1,0 +1,90 @@
+{
+  "method": "GaussianMixture",
+  "n_components": 7,
+  "covariance_type": "diag",
+  "feature_columns": [
+    "p_M1",
+    "p_M2",
+    "p_M3",
+    "p_M4",
+    "p_M5",
+    "p_M6",
+    "p_M7",
+    "p_F1",
+    "p_F2",
+    "p_F3",
+    "p_F4",
+    "p_F5",
+    "p_F6",
+    "p_F7",
+    "p_R1",
+    "p_R2",
+    "p_R3",
+    "p_R4",
+    "p_R5",
+    "p_R6",
+    "p_R7",
+    "barrier_index",
+    "accessibility_index",
+    "poi_density",
+    "stay_proxy",
+    "green_blue_ratio",
+    "building_coverage",
+    "dist_to_station",
+    "edge_conductance_mean",
+    "site_z_iface_residential",
+    "site_z_stack_barrier",
+    "site_z_expanse_disused"
+  ],
+  "component_labels": {
+    "0": "G1",
+    "1": "G2",
+    "2": "G3",
+    "3": "G4",
+    "4": "G5",
+    "5": "G6",
+    "6": "G7"
+  },
+  "component_labels_semantic": {
+    "0": "肌理弱势—边缘过渡型",
+    "1": "竖向叠合—高中断型",
+    "2": "广域存量—低激活型",
+    "3": "绿量渗透—慢行友好型",
+    "4": "枢纽—高停留承压型",
+    "5": "住区衔接—高渗透型",
+    "6": "可达—功能混合活跃型"
+  },
+  "naming_basis": {
+    "肌理弱势—边缘过渡型": "分量中心相对突出于「肌理弱势—边缘过渡型」判别式：barrier=1.988, acc=0.09845, poi=0.05488, stay=3.542e-05, green=2.38e-05, iface=1.18e-06, stack=1.36e-05, expanse=5.87e-06。",
+    "竖向叠合—高中断型": "分量中心相对突出于「竖向叠合—高中断型」判别式：barrier=3.291, acc=-0.09422, poi=0.03494, stay=1.419e+04, green=0.2891, iface=1.9e-06, stack=1.62e-05, expanse=4.09e-06。",
+    "广域存量—低激活型": "分量中心相对突出于「广域存量—低激活型」判别式：barrier=0.9293, acc=0.2716, poi=0.03504, stay=5.03e-05, green=9.636e-06, iface=4.77e-06, stack=1.91e-05, expanse=2.28e-06。",
+    "绿量渗透—慢行友好型": "分量中心相对突出于「绿量渗透—慢行友好型」判别式：barrier=1.311, acc=0.2151, poi=0.04867, stay=4267, green=2.979e-05, iface=4.38e-06, stack=1.84e-05, expanse=4.13e-06。",
+    "枢纽—高停留承压型": "分量中心相对突出于「枢纽—高停留承压型」判别式：barrier=1.955, acc=0.1503, poi=0.06786, stay=3.952e+07, green=0.05519, iface=0.0586, stack=0.0885, expanse=0.0575。",
+    "住区衔接—高渗透型": "分量中心相对突出于「住区衔接—高渗透型」判别式：barrier=0.9496, acc=0.2777, poi=0.05162, stay=6118, green=2.815e-05, iface=8.6e-06, stack=0.000162, expanse=6.65e-06。",
+    "可达—功能混合活跃型": "分量中心相对突出于「可达—功能混合活跃型」判别式：barrier=0.8954, acc=0.2701, poi=0.05682, stay=1529, green=1.09e-05, iface=-8.67e-19, stack=8.79e-08, expanse=3.12e-13。"
+  },
+  "state_color_hex": {
+    "G1": "#1f77b4",
+    "G2": "#ff7f0e",
+    "G3": "#2ca02c",
+    "G4": "#d62728",
+    "G5": "#9467bd",
+    "G6": "#8c564b",
+    "G7": "#e377c2"
+  },
+  "random_state": 42,
+  "inference": {
+    "transition_use": "WE_NT_to_WD_AM_row_fallback_T_avg",
+    "transition_matrix_mode": "soft_probability_mass_row_norm",
+    "w_scen": 1.08,
+    "affinity_gain": 1.15,
+    "scenario_target_flip_frac": 0.3,
+    "site_zone_soft_columns": [
+      "site_z_iface_residential",
+      "site_z_stack_barrier",
+      "site_z_expanse_disused"
+    ],
+    "site_zone_scheme": "SITE_buffered_union_xy_normalized_three_soft_bumps",
+    "scenario_engine_enabled": false
+  }
+}

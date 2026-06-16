@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site-design-platform",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["apps/site_design_platform/start.py", "--no-open"],
+      "port": 8088,
+      "autoPort": false
+    }
+  ]
+}

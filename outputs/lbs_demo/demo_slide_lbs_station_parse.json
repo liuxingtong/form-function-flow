@@ -1,0 +1,17 @@
+{
+  "evaluation_framework": "地块更新潜力评价指标",
+  "indicator": "LBS活力",
+  "timestamp_local": "2025-06-12T20:00:00",
+  "image_path": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\outputs\\lbs_demo\\demo_slide.jpg",
+  "query_pixel_xy": [
+    300,
+    200
+  ],
+  "patch_radius_px": 8,
+  "matched_bin_index": 6,
+  "vitality_min": 11316459.171301,
+  "vitality_max": 15739382.875,
+  "lab_distance_to_center": 25.317977802344327,
+  "legend_mode": "synthetic_gradient_fallback",
+  "notes": "数值区间来自幻灯片图例九档；颜色匹配为 LAB 空间到图例 k-means 中心的最近邻。若布局与默认 ROI 不符，请调整 --legend-roi 或使用 --click + --fallback-palette 做对照。"
+}

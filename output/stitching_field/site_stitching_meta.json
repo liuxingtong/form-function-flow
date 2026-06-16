@@ -1,0 +1,176 @@
+{
+  "principle": "Keep probabilistic guidance. No hard assignment of a single function type to each site block.",
+  "site": {
+    "source": "data\\SITE.json",
+    "site_buffer_m_for_gap_context": 1200.0
+  },
+  "function_groups": {
+    "life_service": {
+      "label_zh": "生活服务型",
+      "supply_fields": {
+        "poi_food_density": 0.24,
+        "poi_retail_density": 0.24,
+        "poi_life_service_density": 0.2,
+        "vitality_food_weighted_density": 0.1,
+        "vitality_retail_weighted_density": 0.1,
+        "vitality_life_service_weighted_density": 0.07,
+        "landuse_commercial_ratio": 0.05
+      },
+      "need_fields": {
+        "landuse_residential_ratio": 0.45,
+        "poi_office_density": 0.25,
+        "poi_public_service_density": 0.15,
+        "poi_retail_density": 0.15
+      },
+      "fit_fields": {
+        "walk_length_share": 0.22,
+        "walk_length_km_per_km2": 0.18,
+        "permeability_index": 0.2,
+        "edge_conductance_mean": 0.15,
+        "meituan_vitality_proxy": 0.15,
+        "building_coverage": 0.1
+      }
+    },
+    "public_activity": {
+      "label_zh": "公共活动型",
+      "supply_fields": {
+        "poi_public_service_density": 0.34,
+        "poi_leisure_density": 0.26,
+        "landuse_public_ratio": 0.16,
+        "landuse_green_ratio": 0.16,
+        "vitality_leisure_weighted_density": 0.08
+      },
+      "need_fields": {
+        "landuse_residential_ratio": 0.3,
+        "poi_office_density": 0.2,
+        "poi_retail_density": 0.2,
+        "poi_food_density": 0.15,
+        "poi_public_service_density": 0.15
+      },
+      "fit_fields": {
+        "walk_length_share": 0.15,
+        "slow_road_length_share": 0.12,
+        "permeability_index": 0.18,
+        "edge_conductance_mean": 0.18,
+        "landuse_green_ratio": 0.17,
+        "poi_public_service_density": 0.1,
+        "poi_leisure_density": 0.1
+      }
+    },
+    "community_living": {
+      "label_zh": "社区栖居型",
+      "supply_fields": {
+        "landuse_residential_ratio": 0.46,
+        "poi_public_service_density": 0.2,
+        "poi_life_service_density": 0.14,
+        "landuse_green_ratio": 0.1,
+        "vitality_life_service_weighted_density": 0.1
+      },
+      "need_fields": {
+        "landuse_residential_ratio": 0.6,
+        "poi_life_service_density": 0.15,
+        "poi_public_service_density": 0.15,
+        "landuse_green_ratio": 0.1
+      },
+      "fit_fields": {
+        "landuse_residential_ratio": 0.24,
+        "landuse_green_ratio": 0.18,
+        "slow_road_length_share": 0.18,
+        "walk_length_share": 0.14,
+        "permeability_index": 0.12,
+        "edge_conductance_mean": 0.08,
+        "barrier_index": -0.06
+      }
+    },
+    "productive_mix": {
+      "label_zh": "复合生产型",
+      "supply_fields": {
+        "poi_office_density": 0.42,
+        "landuse_commercial_ratio": 0.26,
+        "poi_retail_density": 0.12,
+        "poi_public_service_density": 0.1,
+        "vitality_retail_weighted_density": 0.1
+      },
+      "need_fields": {
+        "poi_office_density": 0.5,
+        "landuse_commercial_ratio": 0.25,
+        "poi_retail_density": 0.15,
+        "poi_public_service_density": 0.1
+      },
+      "fit_fields": {
+        "fast_length_share": 0.2,
+        "slow_road_length_share": 0.18,
+        "poi_office_density": 0.18,
+        "avg_height": 0.16,
+        "building_coverage": 0.14,
+        "edge_conductance_mean": 0.08,
+        "landuse_commercial_ratio": 0.06
+      }
+    }
+  },
+  "network_layers": {
+    "walk": {
+      "label_zh": "步行网络",
+      "stitch_fields": {
+        "walk_length_km_per_km2": 0.32,
+        "walk_length_share": 0.26,
+        "permeability_index": 0.18,
+        "edge_conductance_mean": 0.16,
+        "barrier_index": -0.08
+      },
+      "function_compatibility": {
+        "life_service": 1.0,
+        "public_activity": 0.95,
+        "community_living": 0.62,
+        "productive_mix": 0.36
+      }
+    },
+    "slow": {
+      "label_zh": "慢速网络",
+      "stitch_fields": {
+        "slow_road_length_km_per_km2": 0.3,
+        "slow_road_length_share": 0.24,
+        "road_density": 0.14,
+        "permeability_index": 0.16,
+        "edge_conductance_mean": 0.1,
+        "barrier_index": -0.06
+      },
+      "function_compatibility": {
+        "life_service": 0.78,
+        "public_activity": 0.86,
+        "community_living": 1.0,
+        "productive_mix": 0.72
+      }
+    },
+    "fast": {
+      "label_zh": "快速路网络",
+      "stitch_fields": {
+        "fast_road_length_km_per_km2": 0.34,
+        "fast_road_length_share": 0.26,
+        "avg_height": 0.14,
+        "building_coverage": 0.12,
+        "edge_conductance_mean": 0.08,
+        "barrier_index": -0.06
+      },
+      "function_compatibility": {
+        "life_service": 0.28,
+        "public_activity": 0.52,
+        "community_living": 0.22,
+        "productive_mix": 1.0
+      }
+    }
+  },
+  "outputs": {
+    "unit_long": "output/stitching_field/site_unit_probability_long.csv",
+    "unit_wide": "output/stitching_field/site_unit_probability_wide.csv",
+    "site_units_geojson": "output/stitching_field/site_units_with_probability.geojson",
+    "site_blocks_geojson": "output/stitching_field/site_blocks_4.geojson",
+    "site_block_probability": "output/stitching_field/site_block_probability.csv"
+  },
+  "notes": [
+    "Function gap fields are computed by function category only, not split by network layer.",
+    "Network layers only act as site-internal stitching carriers: walk, slow, fast.",
+    "The four blocks are a design coordination partition, not a hard functional zoning partition.",
+    "Landuse in SITE is sparse and mostly residential/park/industrial, so function evidence is POI-led with landuse as program-base correction."
+  ]
+}

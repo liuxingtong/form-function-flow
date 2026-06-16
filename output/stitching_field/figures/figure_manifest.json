@@ -1,0 +1,8 @@
+{
+  "figures": [
+    "output\\stitching_field\\figures\\site_stitching_probability_overview.png",
+    "output\\stitching_field\\figures\\walk_stitching_probability_field.png",
+    "output\\stitching_field\\figures\\slow_stitching_probability_field.png",
+    "output\\stitching_field\\figures\\fast_stitching_probability_field.png"
+  ]
+}

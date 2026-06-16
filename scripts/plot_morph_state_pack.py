@@ -2,12 +2,17 @@
 基于已有 morph_state.csv + morph_gmm_meta.json 重绘「第一人」形态层图纸（与既有命名一致）。
 
 默认输出：
-  output/form/figures/M01–M07 …（含前五类雷达+分布对照、全部状态雷达叠加、形态概率复杂度）
+  output/form/figures/M01–M07 …（含前若干类雷达+分布对照，默认 7 类、全部状态雷达叠加、形态概率复杂度）
 并同步写入 output/form/output_morph/figures/（若目录存在或可创建）。
 
 用法（仓库根目录）：
   python scripts/plot_morph_state_pack.py
+  python scripts/plot_morph_state_pack.py --radar-norm zscore
   python scripts/plot_morph_state_pack.py --morph path/to/morph_state.csv --out-dir path/to/figures
+
+雷达半径（M02/M05）：默认「列方向全局 min–max」（与 M06 单类切片一致）；可选「跨类 z-score」（与 M04 同一套列均值/标准差）；
+或 --radar-norm legacy 恢复旧版「单类内原始均值再 min–max」。若 morph_gmm_meta.json 含 component_means_raw（或 gmm_component_means_raw）
+且与 feature_names 对齐，则优先用其作为分量原型矩阵（原始量纲），再按上述方式归一绘图。
 """
 
 from __future__ import annotations
@@ -58,7 +63,6 @@ FEATURE_LABEL_ZH: dict[str, str] = {
     "dem_mean": "地形高程均值",
     "dem_slope": "地形坡度",
     "heritage_ratio": "风貌保护区占比",
-    "landuse_mix": "土地利用混合度",
     "edge_conductance_mean": "边界传导均值",
     "edge_conductance_std": "边界传导标准差",
     "barrier_index": "阻隔指数",
@@ -111,7 +115,7 @@ def _radar_active_dims(
 ) -> np.ndarray:
     """
     选取「该状态在维度上有分量」的轴：去掉近似全 0 的维度；不足 min_axes 时按 |值| 取 top。
-    V: (k, F) 已为该类内特征均值（原始量纲，非极坐标归一化前）。
+    V 的行 state_row 应与所选 radar_norm 一致（legacy=原始类均值；global_minmax/zscore=已可比尺度）。
     """
     row = np.abs(V[state_row].astype(float))
     mx = float(np.nanmax(row)) if row.size else 0.0
@@ -125,6 +129,95 @@ def _radar_active_dims(
         sub = np.argsort(-row[idx])[:max_axes]
         idx = np.sort(idx[sub])
     return idx
+
+
+def _V_from_meta(meta: dict, k: int, feature_cols: list[str]) -> np.ndarray | None:
+    """
+    可选：meta 中写入训练阶段保存的 GMM 分量在原始特征上的均值矩阵。
+    形状 (K, F_meta)，行顺序为展示态 0…K−1，列顺序与 meta['feature_names'] 一致。
+    支持键：component_means_raw | gmm_component_means_raw
+    """
+    means = meta.get("component_means_raw") or meta.get("gmm_component_means_raw")
+    if means is None:
+        return None
+    fn_meta = list(meta.get("feature_names") or [])
+    if len(fn_meta) == 0:
+        return None
+    try:
+        M_full = np.asarray(means, dtype=float).reshape(k, len(fn_meta))
+    except ValueError:
+        return None
+    if M_full.shape != (k, len(fn_meta)):
+        return None
+    idx_map = {name: i for i, name in enumerate(fn_meta)}
+    cols_idx: list[int] = []
+    for c in feature_cols:
+        if c not in idx_map:
+            return None
+        cols_idx.append(idx_map[c])
+    out = M_full[:, cols_idx]
+    if out.shape != (k, len(feature_cols)):
+        return None
+    return out
+
+
+def _radar_slice_for_class(
+    V: np.ndarray,
+    feature_cols: list[str],
+    class_i: int,
+    radar_norm: str,
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """
+    返回闭合多边形的 angles（长度 n+1）、radii（长度 n+1，用于极坐标半径）、所选特征名列表。
+    radar_norm: global_minmax | zscore | legacy
+    """
+    if radar_norm not in {"global_minmax", "zscore", "legacy"}:
+        raise ValueError(f"unknown radar_norm: {radar_norm}")
+    k, F = V.shape
+    if class_i < 0 or class_i >= k:
+        raise IndexError(class_i)
+
+    if radar_norm == "legacy":
+        idx = _radar_active_dims(V, class_i)
+        cols_i = [feature_cols[j] for j in idx]
+        Vi = V[class_i, idx].astype(float)
+        lo = float(Vi.min())
+        hi = float(Vi.max())
+        rng = max(hi - lo, 1e-9)
+        radii = (Vi - lo) / rng
+    elif radar_norm == "global_minmax":
+        lo = V.min(axis=0)
+        hi = V.max(axis=0)
+        rng = np.maximum(hi - lo, 1e-9)
+        Vn = (V - lo) / rng
+        idx = _radar_active_dims(Vn, class_i)
+        cols_i = [feature_cols[j] for j in idx]
+        radii = np.clip(Vn[class_i, idx].astype(float), 0.0, 1.0)
+    else:  # zscore
+        mu = V.mean(axis=0)
+        sig = np.maximum(V.std(axis=0), 1e-9)
+        Z = (V - mu) / sig
+        idx = _radar_active_dims(np.abs(Z), class_i)
+        cols_i = [feature_cols[j] for j in idx]
+        zi = Z[class_i, idx].astype(float)
+        radii = (np.clip(zi, -2.5, 2.5) + 2.5) / 5.0
+
+    n_dim = len(cols_i)
+    angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
+    angles = angles + angles[:1]
+    rlist = radii.tolist()
+    if n_dim == 0:
+        return np.array([0.0, 0.0]), np.array([0.0, 0.0]), []
+    rlist = rlist + [rlist[0]]
+    return np.asarray(angles), np.asarray(rlist), cols_i
+
+
+def _radar_norm_title_suffix(radar_norm: str) -> str:
+    if radar_norm == "global_minmax":
+        return "列方向全局 min–max（各类可比）"
+    if radar_norm == "zscore":
+        return "跨类 z-score（±2.5 截断映射到 0–1；与 M04 列统计一致）"
+    return "单类内 min–max（legacy）"
 
 
 def plot_m07_prob_entropy_map(
@@ -222,9 +315,17 @@ def _morph_V_matrix(df: pd.DataFrame, feature_cols: list[str], k: int) -> np.nda
     return V
 
 
-def plot_m02_radar(df: pd.DataFrame, feature_cols: list[str], state_names: tuple[str, ...], path: Path) -> None:
+def plot_m02_radar(
+    df: pd.DataFrame,
+    feature_cols: list[str],
+    state_names: tuple[str, ...],
+    path: Path,
+    *,
+    radar_norm: str = "global_minmax",
+    V_override: np.ndarray | None = None,
+) -> None:
     k = len(state_names)
-    V = _morph_V_matrix(df, feature_cols, k)
+    V = _morph_V_matrix(df, feature_cols, k) if V_override is None else V_override
     cmap = cm.tab10
     fig, axes = plt.subplots(
         1,
@@ -235,30 +336,27 @@ def plot_m02_radar(df: pd.DataFrame, feature_cols: list[str], state_names: tuple
     )
     for i in range(k):
         ax = axes[0, i]
-        idx = _radar_active_dims(V, i)
-        cols_i = [feature_cols[j] for j in idx]
-        Vi = V[i, idx]
-        lo = Vi.min()
-        hi = Vi.max()
-        rng = max(hi - lo, 1e-9)
-        Vn = (Vi - lo) / rng
-        n_dim = len(cols_i)
-        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
-        angles += angles[:1]
-        vals = Vn.tolist() + [Vn[0]]
+        angles, vals, cols_i = _radar_slice_for_class(V, feature_cols, i, radar_norm)
+        if len(cols_i) == 0:
+            ax.set_title(f"形态类 {i}", fontsize=9, pad=12)
+            continue
         ax.plot(angles, vals, color=cmap(i % 10), linewidth=1.6)
         ax.fill(angles, vals, color=cmap(i % 10), alpha=0.12)
         short_labs = [c.replace("_", "\n")[:12] for c in cols_i]
         ax.set_xticks(angles[:-1])
         ax.set_xticklabels(short_labs, fontsize=6)
         ax.set_title(f"形态类 {i}", fontsize=9, pad=12)
-    fig.suptitle("空间可供性状态原型雷达图（每类仅展示非近似零维；组内 min–max）", fontsize=11, y=1.02)
+    fig.suptitle(
+        f"空间可供性状态原型雷达图（{_radar_norm_title_suffix(radar_norm)}；每类仅展示非近似零维）",
+        fontsize=11,
+        y=1.02,
+    )
     fig.tight_layout()
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
-def plot_m05_top5_radar_and_unit_maps(
+def plot_m05_radar_and_unit_maps(
     units: gpd.GeoDataFrame,
     df: pd.DataFrame,
     feature_cols: list[str],
@@ -266,14 +364,16 @@ def plot_m05_top5_radar_and_unit_maps(
     path: Path,
     site_path: Path | None,
     *,
-    n_show: int = 5,
+    n_show: int = 7,
+    radar_norm: str = "global_minmax",
+    V_override: np.ndarray | None = None,
 ) -> None:
-    """前 n_show 类：左原型雷达（与 M02 相同的逐类活跃维 + 组内归一），右该类单元分布（浅灰底 + 主题色）。"""
+    """前 n_show 类（类编号 0 起，至多 k 类）：左原型雷达（与 M02 相同的逐类活跃维 + radar_norm），右该类单元分布（浅灰底 + 主题色）。"""
     k = len(state_names)
     n = min(int(n_show), k)
     if n <= 0:
         return
-    V = _morph_V_matrix(df, feature_cols, k)
+    V = _morph_V_matrix(df, feature_cols, k) if V_override is None else V_override
     cmap = cm.tab10
     u0 = units.copy()
     sub_id = df[["unit_id", "_morph_id0"]].drop_duplicates("unit_id")
@@ -284,23 +384,16 @@ def plot_m05_top5_radar_and_unit_maps(
 
     for i in range(n):
         ax_r = fig.add_subplot(gs[i, 0], projection="polar")
-        idx = _radar_active_dims(V, i)
-        cols_i = [feature_cols[j] for j in idx]
-        Vi = V[i, idx]
-        lo = Vi.min()
-        hi = Vi.max()
-        rng = max(hi - lo, 1e-9)
-        Vn = (Vi - lo) / rng
-        n_dim = len(cols_i)
-        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
-        angles += angles[:1]
-        vals = Vn.tolist() + [Vn[0]]
-        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
-        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
-        short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
-        ax_r.set_xticks(angles[:-1])
-        ax_r.set_xticklabels(short_labs, fontsize=6)
-        ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
+        angles, vals, cols_i = _radar_slice_for_class(V, feature_cols, i, radar_norm)
+        if len(cols_i) == 0:
+            ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
+        else:
+            ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
+            ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+            short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
+            ax_r.set_xticks(angles[:-1])
+            ax_r.set_xticklabels(short_labs, fontsize=6)
+            ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
 
         ax_m = fig.add_subplot(gs[i, 1])
         mg = u0.merge(sub_id, on="unit_id", how="left")
@@ -314,7 +407,11 @@ def plot_m05_top5_radar_and_unit_maps(
         ax_m.axis("off")
         ax_m.set_aspect("equal", adjustable="datalim")
 
-    fig.suptitle("前五类空间可供性状态：原型雷达与单元分布（同行对照）", fontsize=12, y=1.01)
+    fig.suptitle(
+        f"前{n}类空间可供性状态：原型雷达与单元分布（{_radar_norm_title_suffix(radar_norm)}）",
+        fontsize=12,
+        y=1.01,
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -325,22 +422,13 @@ def plot_m05_top5_radar_and_unit_maps(
         fig_i = plt.figure(figsize=(14.0, 4.8))
         gs_i = GridSpec(1, 2, figure=fig_i, width_ratios=[1.05, 1.12], wspace=0.22)
         ax_r = fig_i.add_subplot(gs_i[0, 0], projection="polar")
-        idx = _radar_active_dims(V, i)
-        cols_i = [feature_cols[j] for j in idx]
-        Vi = V[i, idx]
-        lo = Vi.min()
-        hi = Vi.max()
-        rng = max(hi - lo, 1e-9)
-        Vn = (Vi - lo) / rng
-        n_dim = len(cols_i)
-        angles = np.linspace(0, 2 * np.pi, n_dim, endpoint=False).tolist()
-        angles += angles[:1]
-        vals = Vn.tolist() + [Vn[0]]
-        ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
-        ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
-        short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
-        ax_r.set_xticks(angles[:-1])
-        ax_r.set_xticklabels(short_labs, fontsize=6)
+        angles, vals, cols_i = _radar_slice_for_class(V, feature_cols, i, radar_norm)
+        if len(cols_i) > 0:
+            ax_r.plot(angles, vals, color=cmap(i % 10), linewidth=1.8)
+            ax_r.fill(angles, vals, color=cmap(i % 10), alpha=0.14)
+            short_labs = [FEATURE_LABEL_ZH.get(c, c.replace("_", "\n")[:11]) for c in cols_i]
+            ax_r.set_xticks(angles[:-1])
+            ax_r.set_xticklabels(short_labs, fontsize=6)
         ax_r.set_title(f"形态类 {i} · 原型雷达", fontsize=10, pad=14)
 
         ax_m = fig_i.add_subplot(gs_i[0, 1])
@@ -465,6 +553,19 @@ def main() -> int:
         help="场地红线；默认优先 data/site_3km/SITE.json，其次 data/SITE.json",
     )
     ap.add_argument("--out-dir", type=Path, default=None, help="仅写此目录（不设则写 figures + output_morph/figures）")
+    ap.add_argument(
+        "--radar-norm",
+        choices=("global_minmax", "zscore", "legacy"),
+        default="global_minmax",
+        help="M02/M05 雷达：global_minmax=列方向全局 min–max（默认）；zscore=跨类 z-score（与 M04 列统计一致）；legacy=旧版单类内 min–max",
+    )
+    ap.add_argument(
+        "--m05-n-show",
+        type=int,
+        default=7,
+        metavar="N",
+        help="M05 组合图与逐类附图包含的形态类数量上限（按类号 0…，不超过实际类数 K；默认 7）",
+    )
     ns = ap.parse_args()
 
     morph_path = ns.morph
@@ -488,10 +589,15 @@ def main() -> int:
     if not feature_cols:
         raise SystemExit("morph_state.csv 中无可用的数值特征列用于雷达/解释图")
 
+    meta: dict = {}
     if ns.meta.is_file():
         meta = json.loads(ns.meta.read_text(encoding="utf-8"))
         preferred = meta.get("feature_names") or []
         feature_cols = [c for c in preferred if c in df.columns] or feature_cols
+
+    V_override = _V_from_meta(meta, k, feature_cols) if meta else None
+    if V_override is not None:
+        print("Radar: using component_means_raw / gmm_component_means_raw from meta.", file=sys.stderr)
 
     try:
         units = gpd.read_file(ns.units, layer="units")
@@ -507,22 +613,41 @@ def main() -> int:
     else:
         site = resolve_site_json_path()
 
+    n_m05 = min(max(0, int(ns.m05_n_show)), k)
+    m05_composite_name = f"M05_前{n_m05}类状态雷达与单元分布.png"
     names = (
         "M01_morph_state_map.png",
         "M02_morph_prototype_radar.png",
         "M03_barrier_permeability.png",
         "M04_morph_interpretation.png",
-        "M05_前五类状态雷达与单元分布.png",
+        m05_composite_name,
         "M06_全部状态原型雷达叠加图.png",
         "M07_形态状态概率复杂度_香农熵.png",
     )
     for d in out_dirs:
         print(f"Writing to {d} …")
         plot_m01_map(units, df, state_names, d / names[0], site)
-        plot_m02_radar(df, feature_cols, state_names, d / names[1])
+        plot_m02_radar(
+            df,
+            feature_cols,
+            state_names,
+            d / names[1],
+            radar_norm=ns.radar_norm,
+            V_override=V_override,
+        )
         plot_m03_barrier_perm(units, df, d / names[2], site)
         plot_m04_heatmap(df, feature_cols, state_names, d / names[3])
-        plot_m05_top5_radar_and_unit_maps(units, df, feature_cols, state_names, d / names[4], site)
+        plot_m05_radar_and_unit_maps(
+            units,
+            df,
+            feature_cols,
+            state_names,
+            d / names[4],
+            site,
+            n_show=ns.m05_n_show,
+            radar_norm=ns.radar_norm,
+            V_override=V_override,
+        )
         plot_m06_all_states_radar_overlay(df, feature_cols, state_names, d / names[5])
         plot_m07_prob_entropy_map(units, df, d / names[6], site)
 

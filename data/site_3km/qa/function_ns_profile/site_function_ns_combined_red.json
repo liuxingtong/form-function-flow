@@ -1,0 +1,71 @@
+{
+  "out_png": "data\\site_3km\\qa\\function_ns_profile\\site_function_ns_combined_red.png",
+  "poi_root": "F:\\Aworks\\2026studio\\shanghaistation\\all\\02-POI&AOI\\1-POI\\25.05\\CSV\\分类\\按类别",
+  "blue_green_dir": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\data\\site_3km\\11-蓝绿空间",
+  "nbins": 56,
+  "smooth_sigma": 2.8,
+  "breakpoint_bins_each_side": 3,
+  "ns_bin_split_index_j": 28,
+  "site_centroid_northing_m": 3458246.550763569,
+  "green_layer_notes": [],
+  "breakpoint_ratio_south_minus_north_over_south": {
+    "combined": 0.33582147904911686,
+    "consumption": 0.4741303039835372,
+    "business": 0.09396231332428502,
+    "leisure": -0.048478961078634156,
+    "green_cover": 0.5076728597527038
+  },
+  "breakpoint_adjacent_weighted_mean": {
+    "combined": {
+      "south": 3428.5016801949455,
+      "north": 2277.1371750294966
+    },
+    "consumption": {
+      "south": 2212.591682738202,
+      "north": 1163.5349156100922
+    },
+    "business": {
+      "south": 1132.072091850518,
+      "north": 1025.699979250381
+    },
+    "leisure": {
+      "south": 83.83790560622512,
+      "north": 87.90228016902351
+    },
+    "green_cover": {
+      "south": 0.06217622825758921,
+      "north": 0.03061104464942202
+    }
+  },
+  "global_domain_weighted_mean": {
+    "combined_poi_km2": {
+      "south": 4012.040455980893,
+      "north": 2083.7966868687718,
+      "delta": -1928.2437691121213
+    },
+    "consumption": {
+      "south": 2330.4673050833917,
+      "north": 974.9591844785555,
+      "delta": -1355.5081206048362
+    },
+    "business": {
+      "south": 1505.2181396598696,
+      "north": 1038.7201259019748,
+      "delta": -466.4980137578948
+    },
+    "leisure": {
+      "south": 176.35501123763189,
+      "north": 70.11737648824132,
+      "delta": -106.23763474939057
+    },
+    "green_cover_frac": {
+      "south": 0.09201452249334129,
+      "north": 0.04660822656709814,
+      "delta": -0.045406295926243144
+    }
+  },
+  "skipped_poi_categories": [
+    "虚拟数据"
+  ],
+  "profile_csv": "data\\site_3km\\qa\\function_ns_profile\\site_function_ns_combined_red.csv"
+}

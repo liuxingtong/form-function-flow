@@ -1,0 +1,99 @@
+{
+  "type": "FeatureCollection",
+  "name": "lbs_vitality_station_sample",
+  "description": "Coordinates are WGS84 longitude, latitude from linear --bbox georeferencing.",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "evaluation_framework": "地块更新潜力评价指标",
+        "indicator": "LBS活力",
+        "timestamp_local": "2025-06-12T20:00:00",
+        "source_image": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\outputs\\lbs_demo\\demo_slide.jpg",
+        "query_pixel_x": 300,
+        "query_pixel_y": 200,
+        "image_width_px": 600,
+        "image_height_px": 400,
+        "patch_radius_px": 8,
+        "vitality_bin": 6,
+        "vitality_min": 11316459.171301,
+        "vitality_max": 15739382.875,
+        "vitality_mid_estimate": 13527921.0231505,
+        "lab_distance_to_legend_center": 25.317977802344327,
+        "legend_mode": "synthetic_gradient_fallback",
+        "notes": "数值区间来自幻灯片图例九档；颜色匹配为 LAB 空间到图例 k-means 中心的最近邻。若布局与默认 ROI 不符，请调整 --legend-roi 或使用 --click + --fallback-palette 做对照。",
+        "coordinate_space": "WGS84",
+        "georef_bbox_wsen": [
+          121.42,
+          31.22,
+          121.52,
+          31.32
+        ],
+        "feature_role": "shanghai_station_query_center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          121.47008347245409,
+          31.26987468671679
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "evaluation_framework": "地块更新潜力评价指标",
+        "indicator": "LBS活力",
+        "timestamp_local": "2025-06-12T20:00:00",
+        "source_image": "F:\\Aworks\\2026studio\\shanghaistation\\form-function-flow\\outputs\\lbs_demo\\demo_slide.jpg",
+        "query_pixel_x": 300,
+        "query_pixel_y": 200,
+        "image_width_px": 600,
+        "image_height_px": 400,
+        "patch_radius_px": 8,
+        "vitality_bin": 6,
+        "vitality_min": 11316459.171301,
+        "vitality_max": 15739382.875,
+        "vitality_mid_estimate": 13527921.0231505,
+        "lab_distance_to_legend_center": 25.317977802344327,
+        "legend_mode": "synthetic_gradient_fallback",
+        "notes": "数值区间来自幻灯片图例九档；颜色匹配为 LAB 空间到图例 k-means 中心的最近邻。若布局与默认 ROI 不符，请调整 --legend-roi 或使用 --click + --fallback-palette 做对照。",
+        "coordinate_space": "WGS84",
+        "georef_bbox_wsen": [
+          121.42,
+          31.22,
+          121.52,
+          31.32
+        ],
+        "feature_role": "shanghai_station_query_footprint_proxy"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              121.46874791318865,
+              31.27187969924812
+            ],
+            [
+              121.47141903171953,
+              31.27187969924812
+            ],
+            [
+              121.47141903171953,
+              31.267869674185462
+            ],
+            [
+              121.46874791318865,
+              31.267869674185462
+            ],
+            [
+              121.46874791318865,
+              31.27187969924812
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}
