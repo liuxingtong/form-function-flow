@@ -12,6 +12,7 @@ import { createZoneInsightOverlay } from "./zone-insight-overlay.js";
 
 const SCENARIO_CACHE_KEY = "site_design_platform_scenario";
 const ECON_PARAMS_CACHE_KEY = "site_design_platform_econ_params";
+const RHINO_REVISION_KEY = "site_design_platform_rhino_revision";
 
 function toPlainFeature(feature) {
   if (!feature || !feature.geometry) return null;
@@ -227,12 +228,17 @@ function renderParcelMetrics(parcelsFc, blocksFc) {
 }
 
 async function fetchRhinoScenario() {
-  const r = await fetch("/api/site-design/rhino/latest");
+  const r = await fetch("/api/site-design/rhino/latest", { cache: "no-store" });
   if (!r.ok) {
     const t = await r.text();
     throw new Error(`rhino latest failed: ${r.status} ${t}`);
   }
-  return r.json();
+  const scenario = await r.json();
+  return {
+    scenario,
+    updatedAt: Number(r.headers.get("X-Rhino-Updated-At") || 0),
+    blocksCount: Number(r.headers.get("X-Rhino-Blocks-Count") || 0),
+  };
 }
 
 async function fetchRhinoParcels() {
@@ -281,14 +287,28 @@ async function main() {
   let selectedParcel = null;
   let cachedEconParams = null;
   let currentEconParams = null;
+  let rhinoBootstrap = null;
+  let lastRhinoUpdatedAt = 0;
 
-  const cached = localStorage.getItem(SCENARIO_CACHE_KEY);
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached);
-      if (store.loadScenarioJSON(parsed)) setStatus("Recovered last scenario from local cache");
-    } catch {
-      // ignore cache parse errors
+  try {
+    const probe = await fetchRhinoScenario();
+    if (probe.scenario && Array.isArray(probe.scenario.blocks) && probe.scenario.blocks.length > 0) {
+      rhinoBootstrap = probe;
+      lastRhinoUpdatedAt = probe.updatedAt || 0;
+    }
+  } catch {
+    // Rhino unavailable — fall back to local cache below.
+  }
+
+  if (!rhinoBootstrap) {
+    const cached = localStorage.getItem(SCENARIO_CACHE_KEY);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (store.loadScenarioJSON(parsed)) setStatus("Recovered last scenario from local cache");
+      } catch {
+        // ignore cache parse errors
+      }
     }
   }
   const cachedEcon = localStorage.getItem(ECON_PARAMS_CACHE_KEY);
@@ -304,7 +324,17 @@ async function main() {
     bindInfoPopups(map);
     renderSummary(datasets.summary);
 
-    const persist = () => localStorage.setItem(SCENARIO_CACHE_KEY, JSON.stringify(store.toScenarioJSON("scenario_mvp", currentEconParams)));
+    const persist = () => {
+      const payload = store.toScenarioJSON("scenario_mvp", currentEconParams);
+      if (lastRhinoUpdatedAt > 0) {
+        payload.scenario_source = "rhino";
+        payload.rhino_updated_at = lastRhinoUpdatedAt;
+      }
+      localStorage.setItem(SCENARIO_CACHE_KEY, JSON.stringify(payload));
+      if (lastRhinoUpdatedAt > 0) {
+        localStorage.setItem(RHINO_REVISION_KEY, String(lastRhinoUpdatedAt));
+      }
+    };
     const zoneOverlay = createZoneInsightOverlay(map);
     const refreshParcelMetricsFromMap = () => {
       const src = map.getSource("zone-parcels");
@@ -486,23 +516,25 @@ async function main() {
       },
     });
 
-    editor = createEditorController(map, store, editorUI);
-    if (cachedEconParams) {
-      editorUI.setEconomicsInputs(cachedEconParams);
-    }
-    editorUI.pushEcoParams();
     const lockBtn = document.getElementById("btn-toggle-lock");
     const setLockBtnText = () => {
       if (!editor) return;
       lockBtn.textContent = editor.isLocked() ? "Unlock Edit" : "Lock Edit";
     };
-    setLockBtnText();
 
-    const loadRhino = async () => {
+    const loadRhino = async (bootstrap = null) => {
       try {
         setStatus("Loading Rhino scenario...");
-        const [scenario, rhinoParcels, rhinoOriginal, rhinoWalking, rhinoGround] = await Promise.all([
-          fetchRhinoScenario(),
+        let scenario;
+        if (bootstrap?.scenario) {
+          scenario = bootstrap.scenario;
+          lastRhinoUpdatedAt = bootstrap.updatedAt || lastRhinoUpdatedAt;
+        } else {
+          const fetched = await fetchRhinoScenario();
+          scenario = fetched.scenario;
+          lastRhinoUpdatedAt = fetched.updatedAt || lastRhinoUpdatedAt;
+        }
+        const [rhinoParcels, rhinoOriginal, rhinoWalking, rhinoGround] = await Promise.all([
           fetchRhinoParcels(),
           fetchRhinoOriginalBuildings(),
           fetchRhinoWalking(),
@@ -520,7 +552,7 @@ async function main() {
         const srcGround = map.getSource("rhino-ground"); if (srcGround) srcGround.setData(rhinoGround);
         if (!store.loadScenarioJSON(scenario)) {
           setStatus("Rhino scenario invalid");
-          return;
+          return false;
         }
         refreshBuildingStackSource(map, { type: "FeatureCollection", features: [] });
         setLayerVisible(map, "buildings-stack-extrusion", false);
@@ -541,19 +573,58 @@ async function main() {
             setStatus("Rhino loaded, but coordinates are not WGS84 lon/lat. Please export CRS84/WGS84.");
             persist();
             setLockBtnText();
-            return;
+            return false;
           }
         }
         persist();
         setLockBtnText();
         setStatus(`Rhino loaded: ${(scenario.blocks || []).length} blocks | ground ${(rhinoGround?.features || []).length} features (locked)`);
+        return true;
       } catch (err) {
         setStatus(`Load Rhino failed: ${err.message}`);
+        return false;
       }
     };
-    document.getElementById("btn-load-rhino").addEventListener("click", loadRhino);
+    document.getElementById("btn-load-rhino").addEventListener("click", () => loadRhino());
     const hero = document.getElementById("btn-load-rhino-hero");
-    if (hero) hero.addEventListener("click", loadRhino);
+    if (hero) hero.addEventListener("click", () => loadRhino());
+
+    (async () => {
+      let rhinoLoaded = false;
+      if (rhinoBootstrap) {
+        rhinoLoaded = await loadRhino(rhinoBootstrap);
+        if (!rhinoLoaded) {
+          const cached = localStorage.getItem(SCENARIO_CACHE_KEY);
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (store.loadScenarioJSON(parsed)) setStatus("Rhino load failed; recovered last scenario from local cache");
+            } catch {
+              // ignore cache parse errors
+            }
+          }
+        }
+      }
+      editor = createEditorController(map, store, editorUI);
+      if (rhinoLoaded) {
+        editor.setLocked(true);
+      }
+      if (cachedEconParams) {
+        editorUI.setEconomicsInputs(cachedEconParams);
+      }
+      editorUI.pushEcoParams();
+      setLockBtnText();
+      if (!rhinoLoaded) {
+        persist();
+        refreshParcelMetricsFromMap();
+      }
+      window.addEventListener("beforeunload", persist);
+      setStatus("Ready");
+      setTimeout(() => { document.getElementById("status").style.display = "none"; }, 1200);
+    })().catch((err) => {
+      console.error(err);
+      setStatus(`Failed: ${err.message}`);
+    });
 
     lockBtn.addEventListener("click", () => {
       if (!editor) return;
@@ -561,10 +632,6 @@ async function main() {
       setLockBtnText();
       setStatus(editor.isLocked() ? "Editor locked (Rhino-driven mode)" : "Editor unlocked");
     });
-
-    persist();
-    refreshParcelMetricsFromMap();
-    window.addEventListener("beforeunload", persist);
 
     document.addEventListener("keydown", (evt) => {
       const tag = (evt.target?.tagName || "").toLowerCase();
@@ -576,9 +643,6 @@ async function main() {
         evt.preventDefault();
       }
     });
-
-    setStatus("Ready");
-    setTimeout(() => { document.getElementById("status").style.display = "none"; }, 1200);
   });
 }
 

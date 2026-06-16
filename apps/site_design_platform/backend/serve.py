@@ -101,11 +101,14 @@ def run_server(root: Path, host: str, port: int) -> None:
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(root), **kwargs)
 
-        def _send_json(self, status: int, payload: dict) -> None:
+        def _send_json(self, status: int, payload: dict, extra_headers: dict[str, str] | None = None) -> None:
             body = json.dumps(payload).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
+            if extra_headers:
+                for key, value in extra_headers.items():
+                    self.send_header(key, value)
             self.end_headers()
             self.wfile.write(body)
 
@@ -369,7 +372,21 @@ def run_server(root: Path, host: str, port: int) -> None:
                     return
                 try:
                     payload = json.loads(rhino_file.read_text(encoding="utf-8-sig"))
-                    self._send_json(200, payload if isinstance(payload, dict) else {"error": "invalid scenario file"})
+                    if not isinstance(payload, dict):
+                        self._send_json(400, {"error": "invalid scenario file"})
+                        return
+                    stat = rhino_file.stat()
+                    blocks = payload.get("blocks", [])
+                    block_count = len(blocks) if isinstance(blocks, list) else 0
+                    self._send_json(
+                        200,
+                        payload,
+                        {
+                            "Cache-Control": "no-store",
+                            "X-Rhino-Updated-At": str(stat.st_mtime),
+                            "X-Rhino-Blocks-Count": str(block_count),
+                        },
+                    )
                 except Exception as exc:
                     self._send_json(400, {"error": str(exc)})
                 return
