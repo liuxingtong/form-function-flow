@@ -1,0 +1,44 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "site-design-platform/scenario.schema.json",
+  "title": "Site Design Platform Scenario",
+  "type": "object",
+  "required": ["schema_version", "scenario_name", "generated_at", "blocks"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "scenario_name": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "geometry", "function", "gfa", "footprint", "height", "floors", "cost_params", "revenue_params"],
+        "properties": {
+          "id": { "type": "string" },
+          "geometry": { "type": "object" },
+          "function": { "type": "string" },
+          "gfa": { "type": "number" },
+          "footprint": { "type": "number" },
+          "height": { "type": "number" },
+          "floors": { "type": "integer" },
+          "cost_params": {
+            "type": "object",
+            "required": ["construction_cost_per_sqm", "soft_cost_ratio"],
+            "properties": {
+              "construction_cost_per_sqm": { "type": "number" },
+              "soft_cost_ratio": { "type": "number" }
+            }
+          },
+          "revenue_params": {
+            "type": "object",
+            "required": ["sale_price_per_sqm", "rent_price_per_sqm_year"],
+            "properties": {
+              "sale_price_per_sqm": { "type": "number" },
+              "rent_price_per_sqm_year": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

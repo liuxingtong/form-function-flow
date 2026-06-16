@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.2.0",
+  "scenario_name": "rhino_live",
+  "generated_at": "2026-05-22T12:00:00Z",
+  "blocks": [
+    {
+      "id": "rh_office_001",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [121.4500, 31.2400],
+            [121.4503, 31.2400],
+            [121.4503, 31.2402],
+            [121.4500, 31.2402],
+            [121.4500, 31.2400]
+          ]
+        ]
+      },
+      "function": "OFFICE",
+      "height": 48,
+      "base": 0,
+      "floors": 12,
+      "cost_params": {
+        "hard_cost_per_sqm": 7000,
+        "soft_cost_ratio": 0.2,
+        "infra_cost_per_sqm": 650,
+        "contingency_ratio": 0.08
+      },
+      "revenue_params": {
+        "sale_price_per_sqm": 0,
+        "rent_price_per_sqm_year": 3800,
+        "occupancy": 0.9,
+        "opex_ratio": 0.22,
+        "cap_rate": 0.05
+      }
+    }
+  ],
+  "rhino_ground": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "id": "rh_ground_001",
+          "layer": "GROUND"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [121.4499, 31.2399],
+              [121.4504, 31.2399],
+              [121.4504, 31.2403],
+              [121.4499, 31.2403],
+              [121.4499, 31.2399]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,68 @@
+﻿{
+  "name": "site_function_allocation_rules",
+  "version": "2026-05-26",
+  "principles": [
+    "zoning-first",
+    "hard-conflict-first",
+    "floor-slice-by-height",
+    "vision-weight-adjustment-not-overwrite",
+    "zone-ratio-calibration"
+  ],
+  "exclude_from_allocation": ["GROUND", "GREEN", "WALKWAY", "HIGHWAY"],
+  "zones": {
+    "CBD": {
+      "role": "商务效率核心",
+      "preferred": ["OFFICE", "CENTER_COMMERCIAL", "LEISURE_COMMERCIAL", "PUBLIC"],
+      "avoid_high": ["社区服务", "社区零售"]
+    },
+    "LEISURE": {
+      "role": "休闲消费与夜间活力核心",
+      "preferred": ["LEISURE_COMMERCIAL", "CENTER_COMMERCIAL", "PUBLIC", "OFFICE"],
+      "avoid_ground": ["封闭办公"]
+    },
+    "RESIDENTIAL": {
+      "role": "居住稳定与社区服务核心",
+      "preferred": ["RESIDENTIAL", "PUBLIC", "CENTER_COMMERCIAL"],
+      "mid_high_forbid": ["零售", "餐饮", "娱乐", "会展"]
+    },
+    "CREATIVE": {
+      "role": "文创生产与展示核心",
+      "preferred": ["OFFICE", "PUBLIC", "LEISURE_COMMERCIAL", "CENTER_COMMERCIAL"],
+      "ground_preferred": ["文化展示", "设计工作室", "开放工作室", "咖啡"]
+    }
+  },
+  "floor_rules": {
+    "ground": ["public_interface", "retail", "food", "lobby", "exhibition", "community_service"],
+    "podium_or_low": ["commercial", "exhibition", "theater", "public_service"],
+    "mid": ["office", "residential", "apartment", "hotel", "education"],
+    "high": ["hq_office", "residential", "apartment", "hotel"],
+    "roof": ["garden", "terrace", "club", "public_activity", "equipment"]
+  },
+  "scoring": {
+    "zone_fit": 0.30,
+    "vision_fit": 0.20,
+    "floor_fit": 0.20,
+    "spatial_fit": 0.15,
+    "adjacency_synergy": 0.10,
+    "conflict_penalty": -0.05
+  },
+  "hard_conflicts": [
+    "RESIDENTIAL core/nearby -> forbid theater_entertainment_convention as primary",
+    "RESIDENTIAL mid_high -> forbid retail_food_entertainment as primary",
+    "CBD high -> forbid community_service_community_retail as primary",
+    "LEISURE ground core -> forbid closed_office_only as primary",
+    "CREATIVE open frontage ground -> forbid closed_residential_only as primary"
+  ],
+  "ratio_targets": {
+    "CBD": {"OFFICE": [0.50, 0.70], "LEISURE_COMMERCIAL": [0.10, 0.20], "CENTER_COMMERCIAL": [0.10, 0.20], "PUBLIC": [0.05, 0.15]},
+    "LEISURE": {"LEISURE_COMMERCIAL": [0.30, 0.50], "CENTER_COMMERCIAL": [0.20, 0.35], "PUBLIC": [0.05, 0.15], "OFFICE": [0.05, 0.20]},
+    "RESIDENTIAL": {"RESIDENTIAL": [0.60, 0.80], "PUBLIC": [0.05, 0.20], "CENTER_COMMERCIAL": [0.03, 0.10], "LEISURE_COMMERCIAL": [0.00, 0.05]},
+    "CREATIVE": {"OFFICE": [0.35, 0.50], "PUBLIC": [0.15, 0.30], "CENTER_COMMERCIAL": [0.08, 0.20], "LEISURE_COMMERCIAL": [0.03, 0.10], "RESIDENTIAL": [0.05, 0.15]}
+  },
+  "output_contract": {
+    "one_primary_one_secondary": true,
+    "must_explain_reason": true,
+    "must_include_conflict_status": true,
+    "must_include_zone_insight": true
+  }
+}

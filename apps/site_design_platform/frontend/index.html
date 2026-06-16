@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>城市设计平台 · 上海站</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="./src/styles/glass-theme.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       TOP NAVIGATION BAR
+  ════════════════════════════════════════════════════════ -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" width="22" height="22">
+        <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" stroke="#3b82f6" stroke-width="1.5" fill="rgba(59,130,246,0.12)"/>
+        <polygon points="12,7 17,9.5 17,14.5 12,17 7,14.5 7,9.5" stroke="#06b6d4" stroke-width="1" fill="rgba(6,182,212,0.1)"/>
+      </svg>
+      <div class="brand-text">
+        <div class="brand-title">城市设计平台</div>
+        <div class="brand-sub">上海站站域 · Rhino联动版</div>
+      </div>
+    </div>
+
+    <nav class="topbar-nav">
+      <button class="nav-tab active" data-view="map" type="button">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" style="margin-right:5px;opacity:.7"><path d="M1 3l5-1.5L10 3l5-1.5v11L10 14l-4-1.5L1 14V3z" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 1.5v11M10 3v11"/></svg>
+        地图与编辑
+      </button>
+      <button class="nav-tab" data-view="dashboard" type="button">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" style="margin-right:5px;opacity:.7"><rect x="1" y="1" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="1" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="9" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="9" y="9" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+        经济仪表盘
+      </button>
+    </nav>
+
+    <div class="topbar-right">
+      <button id="btn-load-rhino-hero" class="btn-rhino" type="button">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4" style="margin-right:5px"><path d="M8 1v10M4 7l4 4 4-4M2 13h12"/></svg>
+        载入 Rhino 方案
+      </button>
+      <div id="status" class="status-chip">正在加载...</div>
+    </div>
+  </header>
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 1 · MAP & EDITOR
+  ════════════════════════════════════════════════════════ -->
+  <div id="view-map" class="view">
+    <div id="app">
+      <div id="map"></div>
+
+      <aside class="panel" id="left-panel">
+        <button class="panel-toggle" id="btn-collapse-panel" title="收起面板" type="button">‹</button>
+
+        <div class="panel-content">
+
+          <!-- LAYER CONTROLS -->
+          <div class="section">
+            <h3 class="section-label">图层控制</h3>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-site-boundary" checked /> SITE 边界</label>
+              <span class="chip chip--core">核心</span>
+            </div>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-buildings" checked /> 方案体块 (3D)</label>
+              <span class="mono" id="buildings-count">—</span>
+            </div>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-rhino-original" checked /> 原始建筑</label>
+              <span class="chip">参考</span>
+            </div>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-walking" checked /> 步行层</label>
+            </div>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-ground" checked /> 地面层</label>
+            </div>
+            <div class="lyr-row">
+              <label><input type="checkbox" id="lyr-landuse" checked /> 用地</label>
+              <span class="mono" id="landuse-count">—</span>
+            </div>
+            <div class="zone-group">
+              <div class="zone-row">
+                <label><input type="checkbox" id="lyr-zone-cbd" checked /><span class="zone-dot" style="background:#2f6df6"></span>Z_CBD</label>
+                <input class="slider" id="opa-zone-cbd" type="range" min="0" max="100" value="45" />
+              </div>
+              <div class="zone-row">
+                <label><input type="checkbox" id="lyr-zone-tod" checked /><span class="zone-dot" style="background:#17bebb"></span>Z_TOD</label>
+                <input class="slider" id="opa-zone-tod" type="range" min="0" max="100" value="45" />
+              </div>
+              <div class="zone-row">
+                <label><input type="checkbox" id="lyr-zone-ofc" checked /><span class="zone-dot" style="background:#f7b32b"></span>Z_OFC</label>
+                <input class="slider" id="opa-zone-ofc" type="range" min="0" max="100" value="45" />
+              </div>
+              <div class="zone-row">
+                <label><input type="checkbox" id="lyr-zone-res" checked /><span class="zone-dot" style="background:#e85d75"></span>Z_RES</label>
+                <input class="slider" id="opa-zone-res" type="range" min="0" max="100" value="45" />
+              </div>
+            </div>
+          </div>
+
+          <!-- EDITOR (hidden by default, shown by JS when unlocked) -->
+          <div class="section hidden-section">
+            <h3 class="section-label">编辑器</h3>
+            <div class="small muted">模式: <span id="edit-mode" class="mono">SELECT</span></div>
+            <div class="btn-row" style="margin-top:6px">
+              <button id="btn-mode-select" type="button">选择</button>
+              <button id="btn-mode-add" type="button">新增</button>
+              <button id="btn-mode-vertex" type="button">顶点</button>
+            </div>
+            <div class="kv-row"><span>已选</span><span class="mono" id="edit-selected-id">—</span></div>
+            <div class="kv-row"><span>高度 (m)</span><input class="slider" id="edit-height-range" type="range" min="3" max="200" value="30" /></div>
+            <div class="kv-row"><span></span><input id="edit-height-input" type="number" min="3" max="300" value="30" style="width:76px" /></div>
+            <div class="kv-row"><span>基高 (m)</span><input class="slider" id="edit-base-range" type="range" min="0" max="60" value="0" /></div>
+            <div class="kv-row"><span></span><input id="edit-base-input" type="number" min="0" max="120" value="0" style="width:76px" /></div>
+            <div class="kv-row"><span>功能</span><select id="edit-function" style="max-width:140px"></select></div>
+            <div class="kv-row"><span>旋转步长°</span><input id="edit-rotate-input" type="number" value="5" style="width:60px" /></div>
+            <div class="btn-row">
+              <button id="btn-rotate-left" type="button">← 旋转</button>
+              <button id="btn-rotate-right" type="button">旋转 →</button>
+            </div>
+            <div class="btn-row">
+              <button id="btn-delete-selected" type="button">删除</button>
+              <button id="btn-save-scenario" type="button">保存</button>
+              <button id="btn-export-scenario" type="button">导出</button>
+            </div>
+            <div class="btn-row"><button id="btn-reset-scenario" type="button" style="flex:1">重置方案</button></div>
+          </div>
+
+          <!-- CLUSTER GENERATOR (deprecated, hidden) -->
+          <div class="section hidden-section">
+            <h3 class="section-label" style="color:var(--muted)">生成器 <span style="font-size:10px;color:var(--amber);font-weight:400">(已弃用)</span></h3>
+            <div class="kv-row"><span>Program</span>
+              <select id="gen-program" style="max-width:160px">
+                <option value="PREMIUM_BIZ_CONSUMPTION">Premium Biz</option>
+                <option value="LEISURE_PUBLIC_CONSUMPTION">Leisure Public</option>
+                <option value="CREATIVE_INDUSTRY_PARK">Creative Park</option>
+                <option value="GREEN_RESIDENTIAL_CLUSTER">Green Residential</option>
+              </select>
+            </div>
+            <div class="kv-row"><span>Template</span>
+              <select id="gen-template" style="max-width:160px">
+                <option value="OFFICE_CAMPUS_BOX">OFFICE_CAMPUS_BOX</option>
+                <option value="RES_SLAB_CLUSTER">RES_SLAB_CLUSTER</option>
+                <option value="MIXED_PODIUM_TOWER">MIXED_PODIUM_TOWER</option>
+              </select>
+            </div>
+            <div class="kv-row"><span>Zone</span>
+              <select id="gen-zone" style="max-width:100px">
+                <option value="CBD">CBD</option>
+                <option value="TOD_DECK">TOD_DECK</option>
+                <option value="OFC">OFC</option>
+              </select>
+            </div>
+            <div class="kv-row"><span>已选地块</span><span class="mono" id="selected-parcel-id">—</span></div>
+            <div class="kv-row"><span>数量</span><input id="gen-count" type="number" min="1" max="200" value="12" style="width:64px" /></div>
+            <div class="kv-row"><span>高度(m)</span><input id="gen-height" type="number" min="6" max="200" value="42" style="width:64px" /></div>
+            <div class="kv-row"><span>Seed</span><input id="gen-seed" type="number" value="42" style="width:64px" /></div>
+            <div class="btn-row"><button id="btn-generate-cluster" type="button" style="flex:1">生成（已弃用）</button></div>
+            <div class="btn-row">
+              <button id="btn-load-rhino" type="button">载入 Rhino</button>
+              <button id="btn-toggle-lock" type="button">解锁编辑</button>
+            </div>
+          </div>
+
+          <!-- FUNCTION LEGEND -->
+          <div class="section">
+            <h3 class="section-label">功能图例</h3>
+            <div id="function-legend"></div>
+          </div>
+
+          <!-- AI ALLOCATION -->
+          <div class="section">
+            <h3 class="section-label">AI 功能细分</h3>
+            <div class="small muted" style="margin-bottom:6px">对 PUBLIC 体块按愿景细分子功能，不改大类业态。</div>
+            <textarea id="ai-vision-input" rows="3" placeholder="例：打造兼具商务效率与夜间活力的复合中心"></textarea>
+            <select id="ai-audience-select" style="width:100%;margin-top:7px">
+              <option value="待定">待定（由 Agent 补全）</option>
+              <option value="商务办公人群">商务办公人群</option>
+              <option value="年轻消费人群">年轻消费人群</option>
+              <option value="创意产业人群">创意产业人群</option>
+              <option value="家庭居住人群">家庭居住人群</option>
+              <option value="游客与外来访客">游客与外来访客</option>
+              <option value="其它">其它（自定义）</option>
+            </select>
+            <input id="ai-audience-other" type="text" placeholder="填写其它人群（可留空）" style="width:100%;margin-top:6px;display:none" />
+            <div class="btn-row" style="margin-top:8px">
+              <button id="btn-ai-allocate" type="button" style="flex:1">生成细分建议</button>
+            </div>
+            <div class="small" id="ai-allocation-summary" style="margin-top:6px;color:var(--accent-2)"></div>
+            <div class="small mono" id="ai-allocation-details" style="white-space:pre-wrap;max-height:110px;overflow:auto;margin-top:4px;color:var(--muted)"></div>
+          </div>
+
+          <!-- SUMMARY -->
+          <div class="section">
+            <h3 class="section-label">数据概要</h3>
+            <div class="small" id="summary"></div>
+          </div>
+
+        </div><!-- /panel-content -->
+      </aside>
+
+    </div><!-- /app -->
+  </div><!-- /view-map -->
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 2 · ECONOMICS DASHBOARD
+  ════════════════════════════════════════════════════════ -->
+  <div id="view-dashboard" class="view" style="display:none">
+
+    <!-- Hidden bridge elements needed by economics-ui.js -->
+    <button id="economics-toggle" style="display:none" type="button">收起</button>
+
+    <div class="dash-layout">
+
+      <!-- Sub-navigation bar -->
+      <div class="dash-subnav">
+        <div class="dash-tabs">
+          <button id="eco-tab-overview" class="dash-tab" type="button">总览</button>
+          <button id="eco-tab-mix" class="dash-tab" type="button">功能结构</button>
+          <button id="eco-tab-parcel" class="dash-tab" type="button">地块约束</button>
+          <button id="dash-tab-params" class="dash-tab" type="button">参数设置</button>
+        </div>
+        <div class="dash-actions">
+          <span class="small muted" style="margin-right:4px">情景预设</span>
+          <button id="eco-preset-conservative" class="preset-btn" type="button">保守</button>
+          <button id="eco-preset-base" class="preset-btn preset-btn--active" type="button">基准</button>
+          <button id="eco-preset-optimistic" class="preset-btn" type="button">乐观</button>
+          <div class="divider-v"></div>
+          <button id="eco-recalc" class="btn-recalc" type="button">重新计算</button>
+        </div>
+      </div>
+
+      <!-- All economics content lives inside #economics-body (required by JS) -->
+      <div id="economics-body" class="dash-body">
+
+        <!-- ── PAGE: 总览 ─────────────────────────────── -->
+        <div id="eco-page-overview" class="dash-page">
+
+          <div class="kpi-strip">
+            <div class="kpi-card">
+              <div class="kpi-label">体块数量</div>
+              <div class="kpi-value" id="kpi-blocks">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">总建面 GFA</div>
+              <div class="kpi-value" id="kpi-gfa">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">总开发成本 TDC</div>
+              <div class="kpi-value" id="kpi-cost">—</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">总价值</div>
+              <div class="kpi-value" id="kpi-revenue">—</div>
+            </div>
+            <div class="kpi-card kpi-card--highlight">
+              <div class="kpi-label">利润</div>
+              <div class="kpi-value" id="eco-profit">—</div>
+            </div>
+            <div class="kpi-card kpi-card--accent">
+              <div class="kpi-label">生态-经济综合得分</div>
+              <div class="kpi-value" id="eco-composite-score">—</div>
+            </div>
+          </div>
+
+          <div class="eco-alerts">
+            <div class="small" id="eco-warning"></div>
+            <div class="small" id="eco-kpi-extra"></div>
+          </div>
+
+          <div class="dash-grid-2x2">
+            <div class="dash-card">
+              <div class="dash-card-head">收入 · 成本对比</div>
+              <div id="eco-rev-cost-bars" class="small chart-area"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">现金流</div>
+              <div id="eco-cashflow-bars" class="small chart-area"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">综合得分构成</div>
+              <div id="eco-composite-breakdown" class="small"></div>
+              <div id="eco-composite-bars" class="small chart-area" style="margin-top:8px"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">交通与公共投入</div>
+              <div id="eco-public-infra" class="small"></div>
+            </div>
+          </div>
+
+          <div class="dash-grid-1x2" style="margin-top:14px">
+            <div class="dash-card">
+              <div class="dash-card-head">方法说明</div>
+              <div id="eco-formula" class="small"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">敏感性口径</div>
+              <div id="eco-sensitivity-notes" class="small"></div>
+            </div>
+          </div>
+        </div><!-- /eco-page-overview -->
+
+
+        <!-- ── PAGE: 功能结构 ─────────────────────────── -->
+        <div id="eco-page-mix" class="dash-page" style="display:none">
+          <div class="dash-grid-2x2">
+            <div class="dash-card">
+              <div class="dash-card-head">功能结构</div>
+              <div id="kpi-by-function" class="small"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">分功能收入贡献</div>
+              <div id="eco-mix-revenue-bars" class="small chart-area"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">分功能成本栈</div>
+              <div id="eco-mix-cost-bars" class="small chart-area"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">收益效率（利润/建面）</div>
+              <div id="eco-mix-efficiency-bars" class="small chart-area"></div>
+            </div>
+          </div>
+          <div class="dash-grid-1x2" style="margin-top:14px">
+            <div class="dash-card">
+              <div class="dash-card-head">决策敏感性</div>
+              <div id="eco-sensitivity" class="small"></div>
+            </div>
+            <div class="dash-card">
+              <div class="dash-card-head">方案雷达图</div>
+              <div id="eco-radar" class="small"></div>
+            </div>
+          </div>
+        </div><!-- /eco-page-mix -->
+
+
+        <!-- ── PAGE: 地块约束 ─────────────────────────── -->
+        <div id="eco-page-parcel" class="dash-page" style="display:none">
+          <div class="dash-card" style="max-width:960px">
+            <div class="dash-card-head">地块指标</div>
+            <div id="eco-parcel-summary" class="small" style="margin-bottom:10px;color:var(--accent-2)"></div>
+            <div id="eco-parcel-table" class="small"></div>
+          </div>
+        </div><!-- /eco-page-parcel -->
+
+
+        <!-- ── PAGE: 参数设置 ─────────────────────────── -->
+        <div id="dash-page-params" class="dash-page" style="display:none">
+          <div class="params-layout">
+
+            <!-- Left: matrix table -->
+            <div class="dash-card params-matrix-card">
+              <div class="dash-card-head">功能单价 · 成本矩阵</div>
+              <div class="small muted" style="margin-bottom:10px">售价/租金 元/㎡ · 建安/市政 元/㎡ · 软成/预备/出租率/OPEX/Cap 为比例</div>
+              <div id="eco-function-params" class="eco-table-wrap">
+                <table class="eco-table eco-table-matrix">
+                  <thead>
+                    <tr>
+                      <th>参数 \ 功能</th>
+                      <th>CENTER_OFFICE</th><th>SMALL_OFFICE</th><th>APARTMENT</th><th>HOTEL</th>
+                      <th>RESIDENTIAL</th><th>CENTER_COMM.</th><th>LEISURE_COMM.</th>
+                      <th>PUBLIC</th><th>GROUND</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>售价</td>
+                      <td><input id="eco-fn-center-office-sale" type="number" value="0"/></td>
+                      <td><input id="eco-fn-small-office-sale" type="number" value="0"/></td>
+                      <td><input id="eco-fn-apartment-sale" type="number" value="126000"/></td>
+                      <td><input id="eco-fn-hotel-sale" type="number" value="0"/></td>
+                      <td><input id="eco-fn-res-sale" type="number" value="156000"/></td>
+                      <td><input id="eco-fn-cc-sale" type="number" value="90000"/></td>
+                      <td><input id="eco-fn-lc-sale" type="number" value="54000"/></td>
+                      <td><input id="eco-fn-public-sale" type="number" value="0"/></td>
+                      <td><input id="eco-fn-ground-sale" type="number" value="0"/></td>
+                    </tr>
+                    <tr><td>租金</td>
+                      <td><input id="eco-fn-center-office-rent" type="number" value="7200"/></td>
+                      <td><input id="eco-fn-small-office-rent" type="number" value="5550"/></td>
+                      <td><input id="eco-fn-apartment-rent" type="number" value="0"/></td>
+                      <td><input id="eco-fn-hotel-rent" type="number" value="6300"/></td>
+                      <td><input id="eco-fn-res-rent" type="number" value="0"/></td>
+                      <td><input id="eco-fn-cc-rent" type="number" value="7800"/></td>
+                      <td><input id="eco-fn-lc-rent" type="number" value="4800"/></td>
+                      <td><input id="eco-fn-public-rent" type="number" value="900"/></td>
+                      <td><input id="eco-fn-ground-rent" type="number" value="0"/></td>
+                    </tr>
+                    <tr><td>建安</td>
+                      <td><input id="eco-fn-center-office-hard" type="number" value="23400"/></td>
+                      <td><input id="eco-fn-small-office-hard" type="number" value="21000"/></td>
+                      <td><input id="eco-fn-apartment-hard" type="number" value="19500"/></td>
+                      <td><input id="eco-fn-hotel-hard" type="number" value="25800"/></td>
+                      <td><input id="eco-fn-res-hard" type="number" value="20400"/></td>
+                      <td><input id="eco-fn-cc-hard" type="number" value="26400"/></td>
+                      <td><input id="eco-fn-lc-hard" type="number" value="24600"/></td>
+                      <td><input id="eco-fn-public-hard" type="number" value="21000"/></td>
+                      <td><input id="eco-fn-ground-hard" type="number" value="3600"/></td>
+                    </tr>
+                    <tr><td>软成</td>
+                      <td><input id="eco-fn-center-office-soft" type="number" step="0.01" value="0.20"/></td>
+                      <td><input id="eco-fn-small-office-soft" type="number" step="0.01" value="0.19"/></td>
+                      <td><input id="eco-fn-apartment-soft" type="number" step="0.01" value="0.17"/></td>
+                      <td><input id="eco-fn-hotel-soft" type="number" step="0.01" value="0.22"/></td>
+                      <td><input id="eco-fn-res-soft" type="number" step="0.01" value="0.18"/></td>
+                      <td><input id="eco-fn-cc-soft" type="number" step="0.01" value="0.22"/></td>
+                      <td><input id="eco-fn-lc-soft" type="number" step="0.01" value="0.20"/></td>
+                      <td><input id="eco-fn-public-soft" type="number" step="0.01" value="0.20"/></td>
+                      <td><input id="eco-fn-ground-soft" type="number" step="0.01" value="0.10"/></td>
+                    </tr>
+                    <tr><td>市政</td>
+                      <td><input id="eco-fn-center-office-infra" type="number" value="2700"/></td>
+                      <td><input id="eco-fn-small-office-infra" type="number" value="2520"/></td>
+                      <td><input id="eco-fn-apartment-infra" type="number" value="2280"/></td>
+                      <td><input id="eco-fn-hotel-infra" type="number" value="3300"/></td>
+                      <td><input id="eco-fn-res-infra" type="number" value="2400"/></td>
+                      <td><input id="eco-fn-cc-infra" type="number" value="3600"/></td>
+                      <td><input id="eco-fn-lc-infra" type="number" value="3000"/></td>
+                      <td><input id="eco-fn-public-infra" type="number" value="2700"/></td>
+                      <td><input id="eco-fn-ground-infra" type="number" value="2700"/></td>
+                    </tr>
+                    <tr><td>预备</td>
+                      <td><input id="eco-fn-center-office-cont" type="number" step="0.01" value="0.10"/></td>
+                      <td><input id="eco-fn-small-office-cont" type="number" step="0.01" value="0.09"/></td>
+                      <td><input id="eco-fn-apartment-cont" type="number" step="0.01" value="0.08"/></td>
+                      <td><input id="eco-fn-hotel-cont" type="number" step="0.01" value="0.10"/></td>
+                      <td><input id="eco-fn-res-cont" type="number" step="0.01" value="0.09"/></td>
+                      <td><input id="eco-fn-cc-cont" type="number" step="0.01" value="0.10"/></td>
+                      <td><input id="eco-fn-lc-cont" type="number" step="0.01" value="0.10"/></td>
+                      <td><input id="eco-fn-public-cont" type="number" step="0.01" value="0.10"/></td>
+                      <td><input id="eco-fn-ground-cont" type="number" step="0.01" value="0.06"/></td>
+                    </tr>
+                    <tr><td>出租率</td>
+                      <td><input id="eco-fn-center-office-occ" type="number" step="0.01" value="0.91"/></td>
+                      <td><input id="eco-fn-small-office-occ" type="number" step="0.01" value="0.88"/></td>
+                      <td><input id="eco-fn-apartment-occ" type="number" step="0.01" value="0.95"/></td>
+                      <td><input id="eco-fn-hotel-occ" type="number" step="0.01" value="0.86"/></td>
+                      <td><input id="eco-fn-res-occ" type="number" step="0.01" value="0.95"/></td>
+                      <td><input id="eco-fn-cc-occ" type="number" step="0.01" value="0.88"/></td>
+                      <td><input id="eco-fn-lc-occ" type="number" step="0.01" value="0.82"/></td>
+                      <td><input id="eco-fn-public-occ" type="number" step="0.01" value="0.60"/></td>
+                      <td><input id="eco-fn-ground-occ" type="number" step="0.01" value="0.00"/></td>
+                    </tr>
+                    <tr><td>OPEX</td>
+                      <td><input id="eco-fn-center-office-opex" type="number" step="0.01" value="0.24"/></td>
+                      <td><input id="eco-fn-small-office-opex" type="number" step="0.01" value="0.25"/></td>
+                      <td><input id="eco-fn-apartment-opex" type="number" step="0.01" value="0.12"/></td>
+                      <td><input id="eco-fn-hotel-opex" type="number" step="0.01" value="0.34"/></td>
+                      <td><input id="eco-fn-res-opex" type="number" step="0.01" value="0.12"/></td>
+                      <td><input id="eco-fn-cc-opex" type="number" step="0.01" value="0.28"/></td>
+                      <td><input id="eco-fn-lc-opex" type="number" step="0.01" value="0.32"/></td>
+                      <td><input id="eco-fn-public-opex" type="number" step="0.01" value="0.28"/></td>
+                      <td><input id="eco-fn-ground-opex" type="number" step="0.01" value="0.00"/></td>
+                    </tr>
+                    <tr><td>Cap Rate</td>
+                      <td><input id="eco-fn-center-office-cap" type="number" step="0.001" value="0.05"/></td>
+                      <td><input id="eco-fn-small-office-cap" type="number" step="0.001" value="0.052"/></td>
+                      <td><input id="eco-fn-apartment-cap" type="number" step="0.001" value="0.055"/></td>
+                      <td><input id="eco-fn-hotel-cap" type="number" step="0.001" value="0.056"/></td>
+                      <td><input id="eco-fn-res-cap" type="number" step="0.001" value="0.055"/></td>
+                      <td><input id="eco-fn-cc-cap" type="number" step="0.001" value="0.052"/></td>
+                      <td><input id="eco-fn-lc-cap" type="number" step="0.001" value="0.058"/></td>
+                      <td><input id="eco-fn-public-cap" type="number" step="0.001" value="0.06"/></td>
+                      <td><input id="eco-fn-ground-cap" type="number" step="0.001" value="0.06"/></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="small muted" style="margin-top:8px">APARTMENT/RESIDENTIAL 按出售；办公/酒店/商业 按出租；PUBLIC 按公共价值代理。</div>
+            </div>
+
+            <!-- Right: project inputs + eco params -->
+            <div class="params-sidebar">
+              <div class="dash-card">
+                <div class="dash-card-head">资金与开发周期</div>
+                <div class="param-row"><label>测算周期(年)</label><input id="eco-input-years" type="number" min="3" max="15" value="5"/></div>
+                <div class="param-row"><label>建设期(年)</label><input id="eco-input-build-years" type="number" min="1" max="10" value="2"/></div>
+                <div class="param-row"><label>土地成本(元/计容㎡)</label><input id="eco-input-land-cost-per-gfa" type="number" value="18000"/></div>
+                <div class="param-row"><label>融资利率</label><input id="eco-input-finance-rate" type="number" step="0.001" value="0.055"/></div>
+                <div class="param-row"><label>债务比例</label><input id="eco-input-debt-ratio" type="number" step="0.01" value="0.55"/></div>
+                <div class="param-row"><label>交易税费率</label><input id="eco-input-tax-ratio" type="number" step="0.01" value="0.06"/></div>
+                <div class="param-row"><label>销售营销率</label><input id="eco-input-sale-marketing-ratio" type="number" step="0.01" value="0.03"/></div>
+                <div class="param-row"><label>租赁招商率</label><input id="eco-input-lease-marketing-ratio" type="number" step="0.01" value="0.02"/></div>
+                <div class="param-row"><label>目标利润率</label><input id="eco-input-target-profit-ratio" type="number" step="0.01" value="0.15"/></div>
+                <div class="param-row"><label>PUBLIC 价值代理(元/㎡)</label><input id="eco-input-public-value-per-sqm" type="number" value="2200"/></div>
+              </div>
+
+              <div class="dash-card" style="margin-top:12px">
+                <div class="dash-card-head">生态参数</div>
+                <div class="param-row"><label>碳汇系数(tCO₂e/㎡·年)</label><input id="eco-input-carbon-factor" type="number" step="0.0001" value="0.0009"/></div>
+                <div class="param-row"><label>径流削减系数(m³/㎡·年)</label><input id="eco-input-runoff-factor" type="number" step="0.01" value="0.65"/></div>
+                <div class="param-row"><label>碳价(元/tCO₂e)</label><input id="eco-input-carbon-price" type="number" step="10" value="520"/></div>
+                <div class="param-row"><label>排水价值(元/m³)</label><input id="eco-input-runoff-price" type="number" step="0.1" value="3.2"/></div>
+              </div>
+
+              <div class="dash-card" style="margin-top:12px">
+                <div class="dash-card-head">口径说明</div>
+                <details>
+                  <summary style="cursor:pointer;color:var(--accent);font-size:12px">展开查看完整口径</summary>
+                  <div id="eco-assumption-notes" class="small" style="margin-top:8px"></div>
+                </details>
+              </div>
+            </div>
+
+          </div><!-- /params-layout -->
+        </div><!-- /dash-page-params -->
+
+      </div><!-- /economics-body -->
+    </div><!-- /dash-layout -->
+  </div><!-- /view-dashboard -->
+
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCRIPTS
+  ════════════════════════════════════════════════════════ -->
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script type="module" src="./src/main.js"></script>
+  <script>
+    /* ── View switching ── */
+    const $views = {
+      map: document.getElementById('view-map'),
+      dashboard: document.getElementById('view-dashboard'),
+    };
+    document.querySelectorAll('.nav-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.view;
+        Object.entries($views).forEach(([k, el]) => {
+          el.style.display = k === target ? '' : 'none';
+        });
+        document.querySelectorAll('.nav-tab').forEach((b) => b.classList.toggle('active', b === btn));
+      });
+    });
+
+    /* ── Left panel collapse ── */
+    const $panel = document.getElementById('left-panel');
+    const $collapseBtn = document.getElementById('btn-collapse-panel');
+    let _collapsed = false;
+    $collapseBtn.addEventListener('click', () => {
+      _collapsed = !_collapsed;
+      $panel.classList.toggle('panel--collapsed', _collapsed);
+      $collapseBtn.textContent = _collapsed ? '›' : '‹';
+    });
+
+    /* ── Dashboard params tab (extra, not in economics-ui.js) ── */
+    const $paramsTab = document.getElementById('dash-tab-params');
+    const $paramsPage = document.getElementById('dash-page-params');
+    const _ecoPageIds = ['eco-page-overview', 'eco-page-mix', 'eco-page-parcel'];
+    const _ecoTabIds  = ['eco-tab-overview',  'eco-tab-mix',  'eco-tab-parcel'];
+
+    function _setDashTab(activeBtnId, showPageId) {
+      [..._ecoPageIds, 'dash-page-params'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === showPageId ? 'block' : 'none';
+      });
+      document.querySelectorAll('.dash-tab').forEach((btn) => {
+        /* Use same value as economics-ui.js so CSS [style*="2px solid"] matches */
+        btn.style.outline = btn.id === activeBtnId ? '2px solid #7cc4ff' : 'none';
+      });
+    }
+
+    /* Wire params tab */
+    if ($paramsTab && $paramsPage) {
+      $paramsTab.addEventListener('click', () => _setDashTab('dash-tab-params', 'dash-page-params'));
+    }
+
+    /* Override economics-ui.js setEcoTab to also reset param page and update styling */
+    _ecoTabIds.forEach((id) => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if ($paramsPage) $paramsPage.style.display = 'none';
+        }, true); /* capture phase, runs before economics-ui.js handler */
+      }
+    });
+
+    /* Default: show overview tab on load */
+    window.addEventListener('load', () => _setDashTab('eco-tab-overview', 'eco-page-overview'));
+  </script>
+
+</body>
+</html>

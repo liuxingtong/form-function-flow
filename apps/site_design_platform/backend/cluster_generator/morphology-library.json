@@ -1,0 +1,92 @@
+﻿{
+  "version": "0.1.0",
+  "templates": [
+    {
+      "id": "RES_SLAB_CLUSTER",
+      "label": "Residential Slab Cluster",
+      "allowed_zone_ids": ["TOD_DECK", "OFC"],
+      "rule": "ROWS",
+      "primitive": "slab",
+      "defaults": {
+        "functionType": "RESIDENTIAL",
+        "building_style": "residential_rows",
+        "target_far": 2.4,
+        "target_density": 0.30,
+        "mixed_ratio": 0.15,
+        "setback_m": 6,
+        "height_m": 54,
+        "base_m": 0,
+        "floor_to_floor_m": 3.0,
+        "spacing_m": 18,
+        "depth_m": 14,
+        "length_m": 48
+      },
+      "cost_params": {
+        "construction_cost_per_sqm": 6300,
+        "soft_cost_ratio": 0.2
+      },
+      "revenue_params": {
+        "sale_price_per_sqm": 42000,
+        "rent_price_per_sqm_year": 0
+      }
+    },
+    {
+      "id": "MIXED_PODIUM_TOWER",
+      "label": "Mixed Podium + Tower",
+      "allowed_zone_ids": ["CBD", "TOD_DECK"],
+      "rule": "TOWER_PODIUM",
+      "primitive": "podium_tower",
+      "defaults": {
+        "functionType": "MIXED_USE",
+        "building_style": "mixed",
+        "target_far": 4.8,
+        "target_density": 0.34,
+        "mixed_ratio": 0.45,
+        "setback_m": 8,
+        "height_m": 96,
+        "base_m": 0,
+        "floor_to_floor_m": 3.6,
+        "podium_height_m": 18,
+        "tower_footprint_ratio": 0.35,
+        "spacing_m": 24
+      },
+      "cost_params": {
+        "construction_cost_per_sqm": 7600,
+        "soft_cost_ratio": 0.22
+      },
+      "revenue_params": {
+        "sale_price_per_sqm": 68000,
+        "rent_price_per_sqm_year": 4200
+      }
+    },
+    {
+      "id": "OFFICE_CAMPUS_BOX",
+      "label": "Office Campus Box",
+      "allowed_zone_ids": ["CBD", "OFC"],
+      "rule": "GRID_ALIGNED",
+      "primitive": "box",
+      "defaults": {
+        "functionType": "OFFICE",
+        "building_style": "non_residential_dots",
+        "target_far": 3.8,
+        "target_density": 0.26,
+        "mixed_ratio": 0.10,
+        "setback_m": 8,
+        "height_m": 42,
+        "base_m": 0,
+        "floor_to_floor_m": 4.2,
+        "spacing_m": 20,
+        "depth_m": 22,
+        "length_m": 36
+      },
+      "cost_params": {
+        "construction_cost_per_sqm": 7100,
+        "soft_cost_ratio": 0.2
+      },
+      "revenue_params": {
+        "sale_price_per_sqm": 0,
+        "rent_price_per_sqm_year": 3800
+      }
+    }
+  ]
+}

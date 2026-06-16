@@ -1,0 +1,19 @@
+{
+  "buildings_features": 315,
+  "landuse_features": 15,
+  "zone_parcels_features": 21,
+  "height_min": 6.934233,
+  "height_max": 95.568833,
+  "landuse_classes": [
+    "交通场站用地",
+    "公园与绿地用地",
+    "医疗卫生用地",
+    "商业服务用地",
+    "商务办公用地",
+    "居住用地",
+    "工业用地",
+    "行政办公用地"
+  ],
+  "source_building": "fallback:data/site_design_platform/datasets/site_buildings.geojson",
+  "source_landuse": "fallback:data/site_design_platform/datasets/site_landuse.geojson"
+}

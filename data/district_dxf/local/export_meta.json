@@ -1,0 +1,9 @@
+{
+  "source_dxf": "F:\\Aworks\\2026studio\\shanghaistation\\district.dxf",
+  "layers": {
+    "Z_CBD": 98,
+    "Z_TOD": 56,
+    "Z_OFC": 11
+  },
+  "skipped_by_dxftype": {}
+}
