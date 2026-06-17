@@ -52,7 +52,10 @@ function setIf(id, value) {
 }
 
 function formatMoneyMillions(value) {
-  return `${(Number(value || 0) / 1e6).toFixed(1)} 百万元`;
+  const n = Number(value || 0);
+  if (Math.abs(n) >= 1e8) return `${(n / 1e8).toFixed(2)} 亿元`;
+  if (Math.abs(n) >= 1e6) return `${(n / 1e6).toFixed(1)} 百万元`;
+  return `${n.toFixed(0)} 元`;
 }
 
 const ECONOMIC_PRESETS = {
