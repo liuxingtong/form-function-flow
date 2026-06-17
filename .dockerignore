@@ -1,0 +1,29 @@
+.git
+.vscode
+.vibe-science
+
+# Large data directories not needed at runtime
+_deprecated
+cache
+output
+outputs
+scripts
+drawings
+
+# Analysis scripts at repo root
+reconstruct_*.py
+
+# Rhino source files (scenario JSON in data/ is used instead)
+input.3dm
+input.3dmbak
+
+# Large data subdirectories not served to frontend
+data/site_3km
+data/sshmm
+data/cad_alignment
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
