@@ -61,42 +61,6 @@ function collectLngLatBoundsFromFeatureCollection(fc) {
   return { bounds, count };
 }
 
-function pointInRing(lng, lat, ring) {
-  let inside = false;
-  let j = ring.length - 1;
-  for (let i = 0; i < ring.length; i += 1) {
-    const xi = ring[i][0]; const yi = ring[i][1];
-    const xj = ring[j][0]; const yj = ring[j][1];
-    const hit = ((yi > lat) !== (yj > lat)) && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-12) + xi);
-    if (hit) inside = !inside;
-    j = i;
-  }
-  return inside;
-}
-
-function centroidOfPolygonFeature(f) {
-  const ring = f?.geometry?.type === "Polygon" ? (f.geometry.coordinates[0] || []) : [];
-  if (!ring.length) return null;
-  let x = 0; let y = 0; let n = 0;
-  ring.slice(0, -1).forEach((p) => { x += p[0]; y += p[1]; n += 1; });
-  return n ? [x / n, y / n] : ring[0];
-}
-
-function polygonAreaSqmFromFeature(f) {
-  const ring = f?.geometry?.type === "Polygon" ? (f.geometry.coordinates[0] || []) : [];
-  if (ring.length < 4) return 0;
-  const lat0 = ring.reduce((a, c) => a + c[1], 0) / ring.length;
-  let s = 0;
-  for (let i = 0; i < ring.length - 1; i += 1) {
-    const x1 = ring[i][0] * 111320 * Math.cos((lat0 * Math.PI) / 180);
-    const y1 = ring[i][1] * 111320;
-    const x2 = ring[i + 1][0] * 111320 * Math.cos((lat0 * Math.PI) / 180);
-    const y2 = ring[i + 1][1] * 111320;
-    s += x1 * y2 - x2 * y1;
-  }
-  return Math.abs(s) / 2;
-}
-
 function buildStackExtrusions(plan, store) {
   const floorH = 3.6;
   const sliceFloors = 3;
@@ -159,74 +123,6 @@ function inferPublicSubtype(prompt, zone = "UNKNOWN") {
   return best.key;
 }
 
-function renderParcelMetrics(parcelsFc, blocksFc) {
-  const summaryEl = document.getElementById("eco-parcel-summary");
-  const tableEl = document.getElementById("eco-parcel-table");
-  if (!summaryEl || !tableEl) return;
-  const parcels = (parcelsFc?.features || []).filter((f) => f?.geometry?.type === "Polygon");
-  if (!parcels.length) {
-    summaryEl.textContent = "未读取到地块数据。";
-    tableEl.innerHTML = "";
-    return;
-  }
-  const blocks = (blocksFc?.features || []).filter((f) => f?.geometry?.type === "Polygon");
-  const rows = parcels.map((p) => {
-    const ring = p.geometry.coordinates[0] || [];
-    const land = polygonAreaSqmFromFeature(p);
-    const farLimit = Number(p.properties?.far_limit ?? 4.0);
-    const hLimit = Number(p.properties?.height_limit ?? 120);
-    let gfa = 0;
-    let hMax = 0;
-    let greenArea = 0;
-    blocks.forEach((b) => {
-      const c = centroidOfPolygonFeature(b);
-      if (!c) return;
-      if (!pointInRing(c[0], c[1], ring)) return;
-      const fp = polygonAreaSqmFromFeature(b);
-      const h = Number(b.properties?.Height ?? b.properties?.height ?? 24);
-      const floors = Math.max(1, Math.round(h / 3.6));
-      gfa += fp * floors;
-      hMax = Math.max(hMax, h);
-      const fn = String(b.properties?.functionType || b.properties?.function || "").toUpperCase();
-      if (fn === "GREEN") greenArea += fp;
-    });
-    const farActual = land > 0 ? gfa / land : 0;
-    const farUse = farLimit > 0 ? farActual / farLimit : 0;
-    const hUse = hLimit > 0 ? hMax / hLimit : 0;
-    const status = farUse > 1 || hUse > 1 ? "超标" : (farUse > 0.9 || hUse > 0.9 ? "临界" : "合规");
-    const greenRatio = land > 0 ? greenArea / land : 0;
-    const ecoPotential = Math.max(0, Math.min(100, greenRatio * 250));
-    return {
-      id: String(p.properties?.parcel_id || p.properties?.id || "-"),
-      zone: String(p.properties?.zone_id || p.properties?.layer || "-"),
-      land, gfa, farLimit, farActual, hLimit, hMax, status, farUse, hUse, greenArea, greenRatio, ecoPotential,
-    };
-  });
-  const overCount = rows.filter((r) => r.status === "超标").length;
-  const totalLand = rows.reduce((a, r) => a + r.land, 0);
-  const totalGfa = rows.reduce((a, r) => a + r.gfa, 0);
-  summaryEl.innerHTML = `地块数 ${rows.length} | 用地总面积 ${Math.round(totalLand).toLocaleString()}㎡ | 建筑总面积 ${Math.round(totalGfa).toLocaleString()}㎡ | 超标地块 ${overCount}`;
-  tableEl.innerHTML = rows.map((r) => {
-    const color = r.status === "超标" ? "#ff6b6b" : (r.status === "临界" ? "#ffd166" : "#31c48d");
-    const farUseSafe = Number.isFinite(r.farUse) ? r.farUse : 0;
-    const hUseSafe = Number.isFinite(r.hUse) ? r.hUse : 0;
-    const farPct = Math.max(0, Math.min(140, Math.round(farUseSafe * 100)));
-    const hPct = Math.max(0, Math.min(140, Math.round(hUseSafe * 100)));
-    const farBar = `<div style="height:6px;background:#1b2738;border-radius:4px;overflow:hidden;"><div style="width:${Math.min(farPct, 100)}%;height:6px;background:${farUseSafe > 1 ? "#ff6b6b" : "#36c5f0"}"></div></div>`;
-    const hBar = `<div style="height:6px;background:#1b2738;border-radius:4px;overflow:hidden;"><div style="width:${Math.min(hPct, 100)}%;height:6px;background:${hUseSafe > 1 ? "#ff6b6b" : "#7ad97a"}"></div></div>`;
-    return `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)">
-      <div><b>${r.zone}</b> / ${r.id} <span style="color:${color};font-weight:600">[${r.status}]</span></div>
-      <div>用地 ${Math.round(r.land).toLocaleString()}㎡ | 建面 ${Math.round(r.gfa).toLocaleString()}㎡</div>
-      <div>FAR ${r.farActual.toFixed(2)} / ${r.farLimit.toFixed(2)} | 限高 ${r.hMax.toFixed(1)}m / ${r.hLimit.toFixed(1)}m</div>
-      <div>绿地 ${Math.round(r.greenArea).toLocaleString()}㎡ (${(r.greenRatio * 100).toFixed(1)}%) | 生态潜力 ${r.ecoPotential.toFixed(0)}/100</div>
-      <div style="margin-top:3px;font-size:11px;color:#a9bddc;">FAR使用率 ${farPct}%</div>
-      ${farBar}
-      <div style="margin-top:3px;font-size:11px;color:#a9bddc;">限高使用率 ${hPct}%</div>
-      ${hBar}
-    </div>`;
-  }).join("");
-}
-
 async function fetchRhinoScenario() {
   const r = await fetch("/api/site-design/rhino/latest", { cache: "no-store" });
   if (!r.ok) {
@@ -251,6 +147,60 @@ async function fetchRhinoOriginalBuildings() {
   const r = await fetch("/api/site-design/rhino/original-buildings");
   if (!r.ok) return { type: "FeatureCollection", features: [] };
   return r.json();
+}
+
+async function fetchRhinoWalking() {
+  const r = await fetch("/api/site-design/rhino/walking");
+  if (!r.ok) return { type: "FeatureCollection", features: [] };
+  return r.json();
+}
+
+async function fetchRhinoGround() {
+  const r = await fetch("/api/site-design/rhino/ground");
+  if (!r.ok) return { type: "FeatureCollection", features: [] };
+  return r.json();
+}
+
+const INFRA_LAYER_MAP = {
+  WALKWAY: "WALKWAY",
+  GROUND: "GROUND",
+  TOD_GROUND: "GROUND",
+  GREEN: "GREEN",
+  HIGHWAY: "HIGHWAY",
+};
+
+function infraBlocksFromFeatureCollection(fc) {
+  return (fc?.features || [])
+    .filter((f) => f?.geometry?.type === "Polygon")
+    .map((f, idx) => {
+      const layer = String(f.properties?.layer || f.properties?.function || "").toUpperCase();
+      const fn = INFRA_LAYER_MAP[layer];
+      if (!fn) return null;
+      return {
+        id: String(f.properties?.id || `infra_${fn}_${idx + 1}`),
+        function: fn,
+        height: fn === "GREEN" ? 0.5 : 0.36,
+        base: 0,
+        geometry: f.geometry,
+        _infraSource: true,
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildInfraBlocks(walkingFc, groundFc) {
+  return [
+    ...infraBlocksFromFeatureCollection(walkingFc),
+    ...infraBlocksFromFeatureCollection(groundFc),
+  ];
+}
+
+function syncMapBuildings(map, store) {
+  const fc = store.getFeatureCollection();
+  refreshBuildingsSource(map, fc);
+  const count = fc.features?.length || 0;
+  const el = document.getElementById("buildings-count");
+  if (el) el.textContent = `${count} features`;
 }
 
 
@@ -307,6 +257,7 @@ async function main() {
 
   map.on("load", () => {
     addSourcesAndLayers(map, datasets);
+    syncMapBuildings(map, store);
     setLayerVisible(map, "buildings-stack-extrusion", false);
     fitToSiteBoundary(map, datasets.siteBoundary);
     bindLayerToggles(map);
@@ -325,11 +276,6 @@ async function main() {
       }
     };
     const zoneOverlay = createZoneInsightOverlay(map);
-    const refreshParcelMetricsFromMap = () => {
-      const src = map.getSource("zone-parcels");
-      const fc = src && src._data ? src._data : datasets.zoneParcels;
-      renderParcelMetrics(fc, store.getFeatureCollection());
-    };
 
     map.on("click", "zone-parcels-fill", (e) => {
       selectedParcel = toPlainFeature(e.features?.[0]);
@@ -356,9 +302,9 @@ async function main() {
 
     let editor = null;
     const editorUI = initEditorUI({
-      onHeightChange: (h) => { if (editor) { editor.setHeight(h); persist(); refreshParcelMetricsFromMap(); } },
-      onBaseChange: (b) => { if (editor) { editor.setBase(b); persist(); refreshParcelMetricsFromMap(); } },
-      onFunctionChange: (f) => { if (editor) { editor.setFunction(f); persist(); refreshParcelMetricsFromMap(); } },
+      onHeightChange: (h) => { if (editor) { editor.setHeight(h); persist(); } },
+      onBaseChange: (b) => { if (editor) { editor.setBase(b); persist(); } },
+      onFunctionChange: (f) => { if (editor) { editor.setFunction(f); persist(); } },
       onRotate: (deg) => { if (editor) { editor.rotateSelected(deg); persist(); } },
       onEconomicsChange: (p) => {
         if (editor) editor.setEconomicsParams(p);
@@ -404,7 +350,7 @@ async function main() {
         if (editor) editor.forceRefresh();
         setStatus("Scenario reset to initial state");
       },
-      onDeleteSelected: () => { if (editor) { editor.deleteSelected(); persist(); refreshParcelMetricsFromMap(); } },
+      onDeleteSelected: () => { if (editor) { editor.deleteSelected(); persist(); } },
       onModeChange: (m) => editor && editor.setMode(m),
       onGenerateCluster: async () => {
         if (!selectedParcel) {
@@ -431,7 +377,6 @@ async function main() {
           store.importGeneratedBlocks(out.blocks || []);
           if (editor) editor.forceRefresh();
           persist();
-          refreshParcelMetricsFromMap();
           setStatus(`Generated ${out.diagnostics?.accepted || 0} blocks`);
         } catch (err) {
           setStatus(`Generate failed: ${err.message}`);
@@ -523,9 +468,11 @@ async function main() {
           scenario = fetched.scenario;
           lastRhinoUpdatedAt = fetched.updatedAt || lastRhinoUpdatedAt;
         }
-        const [rhinoParcels, rhinoOriginal] = await Promise.all([
+        const [rhinoParcels, rhinoOriginal, rhinoWalking, rhinoGround] = await Promise.all([
           fetchRhinoParcels(),
           fetchRhinoOriginalBuildings(),
+          fetchRhinoWalking(),
+          fetchRhinoGround(),
         ]);
         const split = (layer) => ({ type: "FeatureCollection", features: (rhinoParcels.features || []).filter((f) => String(f?.properties?.layer || "").toUpperCase() === layer) });
         const srcParcels = map.getSource("zone-parcels");
@@ -539,7 +486,8 @@ async function main() {
           setStatus("Rhino scenario invalid");
           return false;
         }
-        refreshBuildingsSource(map, store.getFeatureCollection());
+        store.setInfraLayers(buildInfraBlocks(rhinoWalking, rhinoGround));
+        syncMapBuildings(map, store);
         refreshBuildingStackSource(map, { type: "FeatureCollection", features: [] });
         setLayerVisible(map, "buildings-stack-extrusion", false);
         setLayerVisible(map, "buildings-extrusion", true);
@@ -547,7 +495,6 @@ async function main() {
           editor.setLocked(true);
           editor.forceRefresh();
         }
-        renderParcelMetrics(rhinoParcels, store.getFeatureCollection());
         const { bounds, count } = collectLngLatBoundsFromFeatureCollection(store.getFeatureCollection());
         if (count > 0 && !bounds.isEmpty()) {
           const sw = bounds.getSouthWest();
@@ -584,7 +531,10 @@ async function main() {
           if (cached) {
             try {
               const parsed = JSON.parse(cached);
-              if (store.loadScenarioJSON(parsed)) setStatus("Rhino load failed; recovered last scenario from local cache");
+              if (store.loadScenarioJSON(parsed)) {
+                syncMapBuildings(map, store);
+                setStatus("Rhino load failed; recovered last scenario from local cache");
+              }
             } catch {
               // ignore cache parse errors
             }
@@ -603,7 +553,6 @@ async function main() {
       setLockBtnText();
       if (!rhinoLoaded) {
         persist();
-        refreshParcelMetricsFromMap();
       }
       window.addEventListener("beforeunload", persist);
       setStatus("Ready");

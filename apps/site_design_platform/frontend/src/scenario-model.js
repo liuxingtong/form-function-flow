@@ -71,6 +71,13 @@ function createRectPolygon(centerLng, centerLat, halfWm = 20, halfHm = 12) {
   return { type: "Polygon", coordinates: [[[centerLng - dx, centerLat - dy], [centerLng + dx, centerLat - dy], [centerLng + dx, centerLat + dy], [centerLng - dx, centerLat + dy], [centerLng - dx, centerLat - dy]]] };
 }
 
+const INFRA_FUNCTION_TYPES = new Set(["GROUND", "GREEN", "WALKWAY", "HIGHWAY"]);
+
+function isInfraBlock(b) {
+  const fn = String(b?.function || "").toUpperCase();
+  return !!b?._infraSource || INFRA_FUNCTION_TYPES.has(fn);
+}
+
 function classifyUse(functionType) {
   const f = (functionType || "").toUpperCase();
   if (f === "RESIDENTIAL" || f === "APARTMENT") return "sale";
@@ -264,6 +271,39 @@ export function createScenarioStore(buildingsGeojson) {
     recalc(item); features.push(item); byId.set(item.scenarioId, item); return item.scenarioId;
   };
 
+  const createItemFromBlock = (b, prefix = "infra") => {
+    const f = {
+      type: "Feature",
+      properties: {
+        id: b.id || `${prefix}_${idSeq++}`,
+        Height: b.height ?? (String(b.function || "").toUpperCase() === "GREEN" ? 0.5 : 0.36),
+        Base: b.base || 0,
+        functionType: b.function || "WALKWAY",
+        cost_params: b.cost_params,
+        revenue_params: b.revenue_params,
+        saleable_ratio: b.saleable_ratio,
+        rentable_ratio: b.rentable_ratio,
+      },
+      geometry: b.geometry,
+    };
+    const scenarioId = String(f.properties.id);
+    f.properties._scenarioId = scenarioId;
+    const defaults = getFunctionDefaults(f.properties.functionType);
+    f.properties.saleable_ratio = Number(f.properties.saleable_ratio ?? defaults.saleable_ratio);
+    f.properties.rentable_ratio = Number(f.properties.rentable_ratio ?? defaults.rentable_ratio);
+    const item = {
+      scenarioId,
+      feature: f,
+      metrics: { footprint: 0, height: 0, base: 0, floors: 0, gfa: 0, saleable: 0, rentable: 0 },
+      costParams: f.properties.cost_params || defaults.cost_params,
+      revenueParams: f.properties.revenue_params || defaults.revenue_params,
+    };
+    recalc(item);
+    return item;
+  };
+
+  let infraItems = [];
+
   buildingsGeojson.features.forEach((f, idx) => addFeature(f, `bld_${idx + 1}`));
   idSeq = features.length + 1;
   const initialSnapshot = snapshot();
@@ -276,12 +316,26 @@ export function createScenarioStore(buildingsGeojson) {
       if (!scenario || !Array.isArray(scenario.blocks)) return false;
       checkpoint();
       features = []; byId.clear();
-      scenario.blocks.forEach((b, idx) => {
+      infraItems = [];
+      const blocks = scenario.blocks || [];
+      blocks.filter((b) => !isInfraBlock(b)).forEach((b, idx) => {
         const f = { type: "Feature", properties: { id: b.id || `load_${idx + 1}`, Height: b.height || 24, Base: b.base || 0, functionType: b.function || "MIXED_USE", cost_params: b.cost_params, revenue_params: b.revenue_params, saleable_ratio: b.saleable_ratio, rentable_ratio: b.rentable_ratio }, geometry: b.geometry };
         addFeature(f, "load");
       });
+      infraItems = blocks.filter((b) => isInfraBlock(b)).map((b, idx) => createItemFromBlock(b, `infra_${idx + 1}`));
       rebuildCollection();
       return true;
+    },
+    setInfraLayers(blocks = []) {
+      const seen = new Set(infraItems.map((x) => x.scenarioId));
+      (blocks || [])
+        .filter((b) => b?.geometry?.type === "Polygon")
+        .forEach((b, idx) => {
+          const id = String(b.id || `infra_api_${idx + 1}`);
+          if (seen.has(id)) return;
+          seen.add(id);
+          infraItems.push(createItemFromBlock({ ...b, id }, `infra_${idx + 1}`));
+        });
     },
     resetToInitial() { restore(initialSnapshot); undoStack.length = 0; redoStack.length = 0; },
     importGeneratedBlocks(blocks) {
@@ -393,8 +447,9 @@ export function createScenarioStore(buildingsGeojson) {
       let eligibleLandGfa = 0;
       const revenueRows = [];
       const financeRows = [];
+      const statsItems = [...features, ...infraItems];
 
-      features.forEach((item) => {
+      statsItems.forEach((item) => {
         const fn = item.feature.properties.functionType || "MIXED_USE";
         const kind = classifyUse(fn);
         const defaults = getFunctionDefaults(fn);

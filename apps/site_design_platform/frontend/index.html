@@ -212,7 +212,6 @@
         <div class="dash-tabs">
           <button id="eco-tab-overview" class="dash-tab" type="button">总览</button>
           <button id="eco-tab-mix" class="dash-tab" type="button">功能结构</button>
-          <button id="eco-tab-parcel" class="dash-tab" type="button">地块约束</button>
           <button id="dash-tab-params" class="dash-tab" type="button">参数设置</button>
         </div>
         <div class="dash-actions">
@@ -257,6 +256,7 @@
               <div class="kpi-value" id="eco-composite-score">—</div>
             </div>
           </div>
+          <div id="kpi-value-cost-bar" style="margin:-6px 0 12px"></div>
 
           <div class="eco-alerts">
             <div class="small" id="eco-warning"></div>
@@ -327,16 +327,6 @@
             </div>
           </div>
         </div><!-- /eco-page-mix -->
-
-
-        <!-- ── PAGE: 地块约束 ─────────────────────────── -->
-        <div id="eco-page-parcel" class="dash-page" style="display:none">
-          <div class="dash-card" style="max-width:960px">
-            <div class="dash-card-head">地块指标</div>
-            <div id="eco-parcel-summary" class="small" style="margin-bottom:10px;color:var(--accent-2)"></div>
-            <div id="eco-parcel-table" class="small"></div>
-          </div>
-        </div><!-- /eco-page-parcel -->
 
 
         <!-- ── PAGE: 参数设置 ─────────────────────────── -->
@@ -508,7 +498,7 @@
        SCRIPTS
   ════════════════════════════════════════════════════════ -->
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
-  <script type="module" src="./src/main.js?v=20260616-rhino-priority"></script>
+  <script type="module" src="./src/main.js?v=20260617-map-sync"></script>
   <script>
     /* ── View switching ── */
     const $views = {
@@ -538,8 +528,8 @@
     /* ── Dashboard params tab (extra, not in economics-ui.js) ── */
     const $paramsTab = document.getElementById('dash-tab-params');
     const $paramsPage = document.getElementById('dash-page-params');
-    const _ecoPageIds = ['eco-page-overview', 'eco-page-mix', 'eco-page-parcel'];
-    const _ecoTabIds  = ['eco-tab-overview',  'eco-tab-mix',  'eco-tab-parcel'];
+    const _ecoPageIds = ['eco-page-overview', 'eco-page-mix'];
+    const _ecoTabIds  = ['eco-tab-overview',  'eco-tab-mix'];
 
     function _setDashTab(activeBtnId, showPageId) {
       [..._ecoPageIds, 'dash-page-params'].forEach((id) => {
