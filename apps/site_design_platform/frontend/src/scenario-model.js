@@ -219,13 +219,15 @@ export function createScenarioStore(buildingsGeojson) {
   let idSeq = 1;
 
   const recalc = (item) => {
+    const fn = item.feature.properties.functionType || "MIXED_USE";
+    const fnDefaults = getFunctionDefaults(fn);
     item.metrics.footprint = polygonAreaSqm(item.feature.geometry);
     item.metrics.height = Number(item.feature.properties.Height || 12);
     item.metrics.base = Number(item.feature.properties.Base || 0);
     item.metrics.floors = Math.max(1, Math.round(item.metrics.height / 3.6));
     item.metrics.gfa = item.metrics.footprint * item.metrics.floors;
-    item.metrics.saleable = item.metrics.gfa * Number(item.feature.properties.saleable_ratio ?? 0.78);
-    item.metrics.rentable = item.metrics.gfa * Number(item.feature.properties.rentable_ratio ?? 0.72);
+    item.metrics.saleable = item.metrics.gfa * Number(item.feature.properties.saleable_ratio ?? fnDefaults.saleable_ratio ?? 0.78);
+    item.metrics.rentable = item.metrics.gfa * Number(item.feature.properties.rentable_ratio ?? fnDefaults.rentable_ratio ?? 0.72);
   };
 
   const snapshot = () => deepCopy(features.map((x) => ({ scenarioId: x.scenarioId, feature: x.feature, costParams: x.costParams, revenueParams: x.revenueParams })));
@@ -543,11 +545,16 @@ export function createScenarioStore(buildingsGeojson) {
       const buildYears = project.buildYears;
       const leaseYears = Math.max(1, years - buildYears);
 
+      // GDV (sale) recognised in first post-construction year; NOI (rent) recurs annually.
+      const annualNOI = totals.noi;
       let cum = 0;
       let minCum = 0;
       for (let y = 1; y <= years; y += 1) {
-        const annualCost = y <= buildYears ? totals.tdc / buildYears : 0;
-        const annualRevenue = y > buildYears ? totals.total_value / leaseYears : 0;
+        const annualCost = y <= buildYears ? (totals.direct_cost + totals.land_cost + totals.finance_cost) / buildYears : 0;
+        const taxAndMkt = totals.tax_cost + totals.sale_marketing_cost + totals.lease_marketing_cost;
+        const annualRevenue = y > buildYears
+          ? annualNOI + (y === buildYears + 1 ? totals.gdv + totals.public_value - taxAndMkt : 0)
+          : 0;
         const net = annualRevenue - annualCost;
         cum += net;
         minCum = Math.min(minCum, cum);
