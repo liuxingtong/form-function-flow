@@ -253,17 +253,6 @@ async function fetchRhinoOriginalBuildings() {
   return r.json();
 }
 
-async function fetchRhinoWalking() {
-  const r = await fetch("/api/site-design/rhino/walking");
-  if (!r.ok) return { type: "FeatureCollection", features: [] };
-  return r.json();
-}
-
-async function fetchRhinoGround() {
-  const r = await fetch("/api/site-design/rhino/ground");
-  if (!r.ok) return { type: "FeatureCollection", features: [] };
-  return r.json();
-}
 
 async function saveEconomicsSnapshot(payload) {
   const r = await fetch("/api/site-design/economics/snapshot", {
@@ -534,11 +523,9 @@ async function main() {
           scenario = fetched.scenario;
           lastRhinoUpdatedAt = fetched.updatedAt || lastRhinoUpdatedAt;
         }
-        const [rhinoParcels, rhinoOriginal, rhinoWalking, rhinoGround] = await Promise.all([
+        const [rhinoParcels, rhinoOriginal] = await Promise.all([
           fetchRhinoParcels(),
           fetchRhinoOriginalBuildings(),
-          fetchRhinoWalking(),
-          fetchRhinoGround(),
         ]);
         const split = (layer) => ({ type: "FeatureCollection", features: (rhinoParcels.features || []).filter((f) => String(f?.properties?.layer || "").toUpperCase() === layer) });
         const srcParcels = map.getSource("zone-parcels");
@@ -548,8 +535,6 @@ async function main() {
         const srcOFC = map.getSource("zone-ofc"); if (srcOFC) srcOFC.setData(split("Z_OFC"));
         const srcRES = map.getSource("zone-res"); if (srcRES) srcRES.setData(split("Z_RES"));
         const srcOriginal = map.getSource("rhino-original-buildings"); if (srcOriginal) srcOriginal.setData(rhinoOriginal);
-        const srcWalking = map.getSource("rhino-walking"); if (srcWalking) srcWalking.setData(rhinoWalking);
-        const srcGround = map.getSource("rhino-ground"); if (srcGround) srcGround.setData(rhinoGround);
         if (!store.loadScenarioJSON(scenario)) {
           setStatus("Rhino scenario invalid");
           return false;
@@ -579,7 +564,7 @@ async function main() {
         }
         persist();
         setLockBtnText();
-        setStatus(`Rhino loaded: ${(scenario.blocks || []).length} blocks | ground ${(rhinoGround?.features || []).length} features (locked)`);
+        setStatus(`Rhino loaded: ${(scenario.blocks || []).length} blocks (locked)`);
         return true;
       } catch (err) {
         setStatus(`Load Rhino failed: ${err.message}`);
