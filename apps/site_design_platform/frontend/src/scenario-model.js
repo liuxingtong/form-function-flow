@@ -311,7 +311,14 @@ export function createScenarioStore(buildingsGeojson) {
 
   return {
     getById(id) { return byId.get(id) || null; },
-    getFeatureCollection() { rebuildCollection(); return buildingsGeojson; },
+    getFeatureCollection() {
+      rebuildCollection();
+      if (!infraItems.length) return buildingsGeojson;
+      return {
+        type: "FeatureCollection",
+        features: [...buildingsGeojson.features, ...infraItems.map((x) => x.feature)],
+      };
+    },
     loadScenarioJSON(scenario) {
       if (!scenario || !Array.isArray(scenario.blocks)) return false;
       checkpoint();

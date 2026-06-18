@@ -123,6 +123,22 @@ function inferPublicSubtype(prompt, zone = "UNKNOWN") {
   return best.key;
 }
 
+async function fetchWithRetry(fn, { attempts = 4, delayMs = 1500 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        setStatus(`Rhino API 唤醒中，重试 ${i + 2}/${attempts}...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function fetchRhinoScenario() {
   const r = await fetch("/api/site-design/rhino/latest", { cache: "no-store" });
   if (!r.ok) {
@@ -219,9 +235,18 @@ async function saveEconomicsSnapshot(payload) {
 
 async function main() {
   initLegends();
+  if (typeof maplibregl === "undefined") {
+    setStatus("地图库未加载：请硬刷新页面；若仍失败请联系管理员");
+    return;
+  }
   setStatus("Loading GeoJSON layers...");
   const datasets = await loadDatasets(DATASETS);
   const map = createMap();
+  map.on("error", (evt) => {
+    console.error("map error", evt);
+    const msg = evt?.error?.message || "地图底图加载异常";
+    setStatus(msg);
+  });
   const store = createScenarioStore(datasets.buildings);
   let selectedParcel = null;
   let cachedEconParams = null;
@@ -230,13 +255,13 @@ async function main() {
   let lastRhinoUpdatedAt = 0;
 
   try {
-    const probe = await fetchRhinoScenario();
+    const probe = await fetchWithRetry(() => fetchRhinoScenario());
     if (probe.scenario && Array.isArray(probe.scenario.blocks) && probe.scenario.blocks.length > 0) {
       rhinoBootstrap = probe;
       lastRhinoUpdatedAt = probe.updatedAt || 0;
     }
-  } catch {
-    // Rhino unavailable — fall back to local cache below.
+  } catch (err) {
+    console.warn("Rhino preflight unavailable:", err?.message || err);
   }
 
   if (!rhinoBootstrap) {
@@ -464,7 +489,7 @@ async function main() {
           scenario = bootstrap.scenario;
           lastRhinoUpdatedAt = bootstrap.updatedAt || lastRhinoUpdatedAt;
         } else {
-          const fetched = await fetchRhinoScenario();
+          const fetched = await fetchWithRetry(() => fetchRhinoScenario());
           scenario = fetched.scenario;
           lastRhinoUpdatedAt = fetched.updatedAt || lastRhinoUpdatedAt;
         }
@@ -474,14 +499,22 @@ async function main() {
           fetchRhinoWalking(),
           fetchRhinoGround(),
         ]);
-        const split = (layer) => ({ type: "FeatureCollection", features: (rhinoParcels.features || []).filter((f) => String(f?.properties?.layer || "").toUpperCase() === layer) });
-        const srcParcels = map.getSource("zone-parcels");
-        if (srcParcels) srcParcels.setData(rhinoParcels);
-        const srcCBD = map.getSource("zone-cbd"); if (srcCBD) srcCBD.setData(split("Z_CBD"));
-        const srcTOD = map.getSource("zone-tod"); if (srcTOD) srcTOD.setData(split("Z_TOD"));
-        const srcOFC = map.getSource("zone-ofc"); if (srcOFC) srcOFC.setData(split("Z_OFC"));
-        const srcRES = map.getSource("zone-res"); if (srcRES) srcRES.setData(split("Z_RES"));
-        const srcOriginal = map.getSource("rhino-original-buildings"); if (srcOriginal) srcOriginal.setData(rhinoOriginal);
+        const parcelFeats = rhinoParcels.features || [];
+        const hasRhinoParcels = parcelFeats.length > 0;
+        const split = (layer) => ({ type: "FeatureCollection", features: parcelFeats.filter((f) => String(f?.properties?.layer || "").toUpperCase() === layer) });
+        if (hasRhinoParcels) {
+          const srcParcels = map.getSource("zone-parcels");
+          if (srcParcels) srcParcels.setData(rhinoParcels);
+          const srcCBD = map.getSource("zone-cbd"); if (srcCBD) srcCBD.setData(split("Z_CBD"));
+          const srcTOD = map.getSource("zone-tod"); if (srcTOD) srcTOD.setData(split("Z_TOD"));
+          const srcOFC = map.getSource("zone-ofc"); if (srcOFC) srcOFC.setData(split("Z_OFC"));
+          const srcRES = map.getSource("zone-res"); if (srcRES) srcRES.setData(split("Z_RES"));
+        }
+        const origFeats = rhinoOriginal.features || [];
+        if (origFeats.length > 0) {
+          const srcOriginal = map.getSource("rhino-original-buildings");
+          if (srcOriginal) srcOriginal.setData(rhinoOriginal);
+        }
         if (!store.loadScenarioJSON(scenario)) {
           setStatus("Rhino scenario invalid");
           return false;
@@ -524,20 +557,18 @@ async function main() {
 
     (async () => {
       let rhinoLoaded = false;
-      if (rhinoBootstrap) {
-        rhinoLoaded = await loadRhino(rhinoBootstrap);
-        if (!rhinoLoaded) {
-          const cached = localStorage.getItem(SCENARIO_CACHE_KEY);
-          if (cached) {
-            try {
-              const parsed = JSON.parse(cached);
-              if (store.loadScenarioJSON(parsed)) {
-                syncMapBuildings(map, store);
-                setStatus("Rhino load failed; recovered last scenario from local cache");
-              }
-            } catch {
-              // ignore cache parse errors
+      rhinoLoaded = await loadRhino(rhinoBootstrap);
+      if (!rhinoLoaded) {
+        const cached = localStorage.getItem(SCENARIO_CACHE_KEY);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (store.loadScenarioJSON(parsed)) {
+              syncMapBuildings(map, store);
+              setStatus("Rhino load failed; recovered last scenario from local cache");
             }
+          } catch {
+            // ignore cache parse errors
           }
         }
       }
@@ -553,10 +584,14 @@ async function main() {
       setLockBtnText();
       if (!rhinoLoaded) {
         persist();
+        if (!localStorage.getItem(SCENARIO_CACHE_KEY)) {
+          setStatus("Rhino 未加载：请先运行 python apps/site_design_platform/start.py，再刷新页面");
+        }
+      } else {
+        setStatus("Ready");
+        setTimeout(() => { document.getElementById("status").style.display = "none"; }, 1200);
       }
       window.addEventListener("beforeunload", persist);
-      setStatus("Ready");
-      setTimeout(() => { document.getElementById("status").style.display = "none"; }, 1200);
     })().catch((err) => {
       console.error(err);
       setStatus(`Failed: ${err.message}`);

@@ -7,6 +7,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+!apps/site_design_platform/frontend/vendor/maplibre-gl/dist/
+!apps/site_design_platform/frontend/vendor/maplibre-gl/dist/**
 downloads/
 eggs/
 .eggs/
